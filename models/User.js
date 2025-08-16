@@ -10,7 +10,7 @@ const User = sequelize.define('User', {
   location: { type: DataTypes.STRING, allowNull: false },
   lastname: { type: DataTypes.STRING, allowNull: false },
   profileimage:{ type:DataTypes.STRING,allowNull: false,
-    defaultValue: '/uploads/profileimages/default.png' },
+    defaultValue: 'uploads/profileimages/default.png' },
   phonenumber: DataTypes.STRING,
   website: { type: DataTypes.STRING, defaultValue: 'user.com' },
   instagram: { type: DataTypes.STRING, defaultValue: '@user' },
