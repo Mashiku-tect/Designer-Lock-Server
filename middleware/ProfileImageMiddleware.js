@@ -1,9 +1,8 @@
 // middlewares/uploadMiddleware.js
-
 const multer = require('multer');
 const path = require('path');
 
-// Storage config: save to /uploads and keep original file extension
+// Set up storage config
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'uploads/profileimages'),
   filename: (req, file, cb) => {
@@ -13,13 +12,14 @@ const storage = multer.diskStorage({
   }
 });
 
-// File filter (accept only images)
+// Filter to accept only images
 const fileFilter = (req, file, cb) => {
   const allowedTypes = /jpeg|jpg|png/;
   const isValid = allowedTypes.test(path.extname(file.originalname).toLowerCase());
   cb(null, isValid);
 };
 
+// Final multer upload handler
 const upload = multer({ storage, fileFilter });
 
 module.exports = upload;

@@ -79,6 +79,7 @@ exports.getDashboardData = async (req, res) => {
       haseverloggedin: user.haseverloggedin,
       weeklyRevenue: weeklyRevenue || 0,
       todayRevenue: todayRevenue || 0,
+      profileimage: user.profileimage,
 
     });
 

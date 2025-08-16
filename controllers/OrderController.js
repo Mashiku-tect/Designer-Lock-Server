@@ -1,5 +1,6 @@
 const Product  = require('../models/Product');
 const slugify = require('slugify'); // install this package with `npm install slugify`
+const User = require('../models/User');
 
 // Helper to generate a unique productId
 async function generateUniqueProductId(clientName, designTitle) {
@@ -49,6 +50,9 @@ exports.createOrder = async (req, res) => {
       
     });
 
+     // 2. Increment user's posts count by 1
+    await User.increment('posts', { where: { user_id: req.user.id } });
+
     return res.status(201).json({
       message: `Product created successfully with ID: ${product_id}`,
       productId: product_id,
@@ -59,32 +63,6 @@ exports.createOrder = async (req, res) => {
     return res.status(500).json({ message: 'Server error' });
   }
 };
-
-//handle delete of some orders
-// exports.deleteOrder = async (req, res) => {
-//   const { product_id } = req.params;
-
-//   try {
-//     const product = await Product.findOne({ where: { product_id } });
-
-//     if (!product) {
-//       return res.status(404).json({ message: 'Product not found' });
-//     }
-
-//     // Check if the user is authorized to delete this product
-//     if (product.user_id !== req.user.id) {
-//       return res.status(403).json({ message: 'Unauthorized to delete this product' });
-//     }
-
-//     await Product.destroy({ where: { product_id } });
-
-//     return res.status(200).json({ message: 'Product deleted successfully' });
-//   } catch (error) {
-//     console.error('Delete product error:', error);
-//     return res.status(500).json({ message: 'Server error' });
-//   }
-// };
-
 
 // DELETE /api/orders/:productId
 exports.deleteOrder = async (req, res) => {
@@ -99,6 +77,10 @@ exports.deleteOrder = async (req, res) => {
     if (deleted === 0) {
       return res.status(404).json({ error: 'Order not found or unauthorized' });
     }
+    // Decrease user's post count by 1
+    await User.decrement('posts', {
+      where: { user_id }
+    });
 
     res.json({ message: 'Order deleted successfully' });
   } catch (error) {

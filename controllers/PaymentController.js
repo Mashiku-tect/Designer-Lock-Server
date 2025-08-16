@@ -10,26 +10,36 @@ exports.checkPaymentStatus = async (req, res) => {
     const user_id = req.user.id;
     const product_id = req.body.productId;
 
-   // console.log('Checking payment status for user:', user_id, 'and product:', product_id);
-     const product = await Product.findByPk(product_id);
-     if (!product) {
+    const product = await Product.findByPk(product_id);
+
+    if (!product) {
       return res.status(404).json({ error: 'Product not found' });
     }
-    //Allow The Owner To Access The Product
-    if (product.user_id === user_id) {
-        return res.json({ hasPaid: true });
-        }
 
-    const hasPaid = await Payment.findOne({
+    // Automatically consider the owner as "hasPaid"
+    if (product.user_id === user_id) {
+      return res.json({ hasPaid: true });
+    }
+
+    // Check if the current user has paid for the product
+    const payment = await Payment.findOne({
       where: { user_id, product_id },
     });
 
-    res.json({ hasPaid: !!hasPaid });
+    if (!payment) {
+  //console.log(`User ${user_id} has not paid for product ${product_id}`);
+  return res.json({ hasPaid: false });
+}
+
+console.log(`User ${user_id} has paid for product ${product_id}`);
+return res.json({ hasPaid: true });
+
   } catch (error) {
     console.error('Check payment error:', error);
-    res.status(500).json({ error: 'Server error checking payment status' });
+    return res.status(500).json({ error: 'Server error checking payment status' });
   }
 };
+
 
 
 exports.payForProduct = async (req, res) => {

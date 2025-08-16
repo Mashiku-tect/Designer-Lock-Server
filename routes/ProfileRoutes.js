@@ -9,6 +9,6 @@ const upload = require('../middleware/ProfileImageMiddleware');
 // Protected routes
 router.get('/profile', authenticateToken, getProfile);
 router.put('/updateprofile', authenticateToken, updateProfile);
-router.put('/profile/image', authenticateToken, upload.single('image'), uploadProfileImage);
+router.post('/profile/image', authenticateToken, upload.single('profileimage'), uploadProfileImage);
 
 module.exports = router;

@@ -20,6 +20,7 @@ const searchRoutes = require('./routes/SearchRoutes');
 const checkpayment= require('./routes/PaymentRoutes');
 const orderRoutes = require('./routes/OrderRoutes');
 const profileRoutes = require('./routes/ProfileRoutes');
+const designerRoutes = require('./routes/DesignersRoutes');
 
 app.use('/uploads', express.static('uploads'));
 
@@ -30,7 +31,7 @@ app.use('/api', loginRoutes);
 app.use('/api', authRoutes);
 app.use('/api', profileRoutes);
 app.use('/api', checkpayment);
-
+app.use('/api', designerRoutes);
 // Test DB connection
 sequelize.authenticate()
   .then(() => console.log('✅ MySQL connected...'))

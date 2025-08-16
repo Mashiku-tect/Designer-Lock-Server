@@ -5,14 +5,25 @@ const User = require('../models/User');
 exports.getProfile = async (req, res) => {
   try {
     const user = await User.findByPk(req.user.id, {
-      attributes: [ 'firstname', 'lastname', 'email', 'phonenumber', 'bio', 'x', 'instagram',  'website', 'profileimage','posts']
+      attributes: [ 'firstname', 'lastname', 'email', 'phonenumber', 'bio', 'x', 'instagram',  'website', 'profileimage','posts','location']
     });
     if (!user) return res.status(404).json({ error: 'User not found' });
-    console.log('getProfile user:', user);
-    // Return user data without password    
-
-    
-    res.json({ user });
+   
+    //console user location
+    //console.log('User location:', user.location);
+    res.json({ 
+      firstname: user.firstname,
+      lastname: user.lastname,
+      email: user.email,
+      phonenumber: user.phonenumber,
+      bio: user.bio,
+      x: user.x,
+      instagram: user.instagram,
+      website: user.website,
+      profileimage: user.profileimage,
+      posts: user.posts,
+      location: user.location,
+    });
   } catch (err) {
     console.error('getProfile error:', err);
     res.status(500).json({ error: 'Server error' });
@@ -23,9 +34,9 @@ exports.updateProfile = async (req, res) => {
   try {
     const payload = { ...req.body };
 
-    await User.update(payload, { where: { id: req.user.id } });
+    await User.update(payload, { where: { user_id: req.user.id } });
     const updated = await User.findByPk(req.user.id, {
-      attributes: ['firstname', 'lastname', 'email', 'phone', 'bio', 'twitter', 'whatsapp', 'instagram', 'location', 'website', 'profileImage']
+      attributes: ['firstname', 'lastname', 'email', 'phonenumber', 'bio', 'x',  'instagram', 'location', 'website', 'profileimage']
     });
 
     res.json({ user: updated });
@@ -40,20 +51,31 @@ exports.updateProfile = async (req, res) => {
 
 exports.uploadProfileImage = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.id; // Assuming your auth middleware sets req.user
+    const file = req.file;
 
-    if (!req.file) {
-      return res.status(400).json({ error: 'No image uploaded' });
+    if (!file) {
+      return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const imagePath = `/uploads/${req.file.filename}`;
+    // Generate the relative path to store in DB
+    const imagePath = `uploads/profileimages/${file.filename}`;
 
-    // Update user's profileImage
-    await User.update({ profileImage: imagePath }, { where: { id: userId } });
+    // Update the user in the database
+    const [updated] = await User.update(
+      { profileimage: imagePath },
+      { where: { user_id: userId } }
+    );
 
-    res.json({ message: 'Profile image updated', profileImage: imagePath });
+    if (updated === 0) {
+      return res.status(404).json({ error: 'User not found or not updated' });
+    }
+
+    const updatedUser = await User.findByPk(userId);
+
+    res.json({ profileimage: updatedUser.profileimage });
   } catch (error) {
-    console.error('Profile image upload error:', error);
-    res.status(500).json({ error: 'Server error uploading image' });
+    console.error('Upload error:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
