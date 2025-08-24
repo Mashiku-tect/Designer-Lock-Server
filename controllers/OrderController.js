@@ -70,17 +70,26 @@ exports.deleteOrder = async (req, res) => {
   const { productId } = req.params;
 
   try {
-    const deleted = await Product.destroy({
-      where: { product_id: productId, user_id }
-    });
-
-    if (deleted === 0) {
-      return res.status(404).json({ error: 'Order not found or unauthorized' });
+    const order = await Product.findOne({ where: { product_id: productId, user_id } });
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
     }
-    // Decrease user's post count by 1
+   
+
+    //Perform Soft Delete by setting is_visible to false
+    await Product.update(
+      { is_visible: false,status: 'Deleted' },
+      { where: { product_id: productId, user_id } }
+    );
+
+    // Decrease user's post count by 1 only if the order was in progress
+     if (order.status === 'In Progress') {
     await User.decrement('posts', {
       where: { user_id }
     });
+    }
+
+    
 
     res.json({ message: 'Order deleted successfully' });
   } catch (error) {

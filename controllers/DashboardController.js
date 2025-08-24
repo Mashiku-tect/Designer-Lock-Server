@@ -39,15 +39,15 @@ exports.getDashboardData = async (req, res) => {
     const now = new Date();
 
     // Today's Revenue
-    const todayRevenue = await Order.sum('price', {
-      where: {
-        createdAt: {
-           user_id,
-           status: 'Completed',
-          [Op.between]: [todayStart, todayEnd],
-        },
-      },
-    });
+   const todayRevenue = await Order.sum('price', {
+  where: {
+    user_id, 
+    status: 'Completed', 
+    createdAt: {
+      [Op.between]: [todayStart, todayEnd], 
+    },
+  },
+});
 
     // Weekly Revenue
     const weeklyRevenue = await Order.sum('price', {
@@ -63,7 +63,7 @@ exports.getDashboardData = async (req, res) => {
 
     // Get recent orders (latest 5)
     const recentOrders = await Order.findAll({
-      where: { user_id },
+      where: { user_id, is_visible: true, },
       order: [['createdAt', 'DESC']],
       limit: 5
     });

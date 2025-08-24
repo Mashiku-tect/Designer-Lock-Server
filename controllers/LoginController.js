@@ -22,6 +22,10 @@ exports.login = async (req, res) => {
     if (!user) {
       return res.status(400).json({ message: 'Invalid email or phone number' });
     }
+    if (!user.isVerified) {
+  return res.status(403).json({ message: "Please verify your email before logging in" });
+ }
+
 
     // Check password
     const isMatch = await bcrypt.compare(password, user.password);
@@ -38,6 +42,18 @@ exports.login = async (req, res) => {
       JWT_SECRET,
       { expiresIn: '7d' }
     );
+
+    //update first login date
+    await User.update(
+  {
+   
+    firstlogindate: new Date(), // store current datetime
+  },
+  {
+    where: { email: email }
+  }
+);
+
 
     return res.status(200).json({
       message: 'Login successful',

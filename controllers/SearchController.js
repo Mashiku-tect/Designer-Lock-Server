@@ -10,7 +10,10 @@ exports.searchProducts = async (req, res) => {
       where: {
         product_id: {
           [db.Sequelize.Op.like]: `%${query}%`
-        }
+        },
+        status: {
+      [db.Sequelize.Op.ne]: 'Deleted' // Exclude products with status 'Deleted'
+    }
       }
     });
 

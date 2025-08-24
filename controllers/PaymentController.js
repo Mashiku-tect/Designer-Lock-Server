@@ -48,9 +48,8 @@ exports.payForProduct = async (req, res) => {
     const user_id = req.user.id;
     const  amount  = req.body.amount;
     const product_id = req.body.productId;
-    //console.log("Product ID:", product_id);
     const product = await Product.findByPk(product_id);
-   // console.log('Processing payment for user:', user_id, 'product:', product_id, 'amount:', amount);
+  
 
     if (!product) {
       return res.status(404).json({ error: 'Product not found' });
@@ -68,23 +67,21 @@ exports.payForProduct = async (req, res) => {
 
     await Payment.create({ user_id, product_id, amountpaid:amount });
 
-    res.json({ success: true });
+    //res.json({ success: true });
 
-    //Mark the product as completed if the user(customer) has paid
-    if (product.user_id === user_id) {
-  // Mark as completed
+    // Update product status to 'Completed'
   await Product.update(
     { status: 'Completed' },
     {
       where: {
         product_id: product_id,
-        user_id: user_id
+        
       }
     }
   );
 
-  return res.json({ hasPaid: true });
-}
+  return res.json({success: true , hasPaid: true });
+
 
   } catch (error) {
     console.error('Payment error:', error);

@@ -14,7 +14,12 @@ const Product = sequelize.define('Product', {
   additionalnotes: DataTypes.STRING,
   status: { type: DataTypes.STRING, defaultValue: 'In Progress' },
   createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
-  updatedAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
+  updatedAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+  is_visible: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+    }
 }, {
   tableName: 'products',
   timestamps: true
