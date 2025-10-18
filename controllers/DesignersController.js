@@ -1,5 +1,5 @@
 // controllers/designerController.js
-const users = require('../models/User');
+const {User} = require('../models');
 const { Op } = require('sequelize');
 
 
@@ -8,7 +8,7 @@ exports.getAllDesigners = async (req, res) => {
     //const designers = await users.findAll();
       const currentUserId = req.user.id;  // get current user id from token payload
 
-    const designers = await users.findAll({
+    const designers = await User.findAll({
       where: {
         user_id: { [Op.ne]: currentUserId }  // exclude current user
       }

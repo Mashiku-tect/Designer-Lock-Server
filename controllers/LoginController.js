@@ -4,7 +4,7 @@ const db = require('../config/db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
-const User = require('../models/User');
+const {User} = require('../models');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxMjM0NTYiLCJpYXQiOjE2MzAwMDAwMDB9.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c'; // Store in .env in production
 
@@ -20,7 +20,7 @@ exports.login = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(400).json({ message: 'Invalid email or phone number' });
+      return res.status(400).json({ message: 'Invalid email' });
     }
     if (!user.isVerified) {
   return res.status(403).json({ message: "Please verify your email before logging in" });

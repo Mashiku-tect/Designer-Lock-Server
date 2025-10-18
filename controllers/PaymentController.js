@@ -1,16 +1,17 @@
-//const { User, Product, Payment } = require('../models');
-const db = require('../config/db');
-const User = require('../models/User');
-const Payment = require('../models/Payment'); // Assuming Payment is a model for payments  
-const Product = require('../models/Product'); // Assuming Product is a model for products      
-const jwt = require('jsonwebtoken');
+
+const {Payment,Product} = require('../models'); // Assuming Payment is a model for payments  
+
 
 exports.checkPaymentStatus = async (req, res) => {
   try {
     const user_id = req.user.id;
-    const product_id = req.body.productId;
+    const {productid} = req.body;
+    
+    const product_id=productid;
 
     const product = await Product.findByPk(product_id);
+
+    //console.log(product)
 
     if (!product) {
       return res.status(404).json({ error: 'Product not found' });
@@ -23,7 +24,7 @@ exports.checkPaymentStatus = async (req, res) => {
 
     // Check if the current user has paid for the product
     const payment = await Payment.findOne({
-      where: { user_id, product_id },
+      where: { user_id, product_id,status:"SUCCESS" },
     });
 
     if (!payment) {
@@ -31,7 +32,7 @@ exports.checkPaymentStatus = async (req, res) => {
   return res.json({ hasPaid: false });
 }
 
-console.log(`User ${user_id} has paid for product ${product_id}`);
+//console.log(`User ${user_id} has paid for product ${product_id}`);
 return res.json({ hasPaid: true });
 
   } catch (error) {
@@ -44,10 +45,10 @@ return res.json({ hasPaid: true });
 
 exports.payForProduct = async (req, res) => {
   try {
-    // Assuming req.user is set by the authenticateToken middleware
+   
     const user_id = req.user.id;
-    const  amount  = req.body.amount;
-    const product_id = req.body.productId;
+    const {productid,amount}=req.body;
+    const product_id=productid;
     const product = await Product.findByPk(product_id);
   
 

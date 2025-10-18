@@ -2,6 +2,7 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/db');
 
+
 const User = sequelize.define('User', {
   user_id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
   email: { type: DataTypes.STRING, allowNull: false },
@@ -21,6 +22,10 @@ const User = sequelize.define('User', {
   isVerified: { type: DataTypes.BOOLEAN, defaultValue: false },
     verificationToken: { type: DataTypes.STRING },
     resetPasswordToken: { type: DataTypes.STRING },
+    work: { type: DataTypes.STRING, defaultValue: 'Not Specified' },
+    education: { type: DataTypes.STRING, defaultValue: 'Not Specified' },
+    professionalsummary: { type: DataTypes.TEXT, defaultValue: 'Not Specified' },
+    
 resetPasswordExpires: { type: DataTypes.DATE },
 firstlogindate: DataTypes.DATE,
 }, {
@@ -28,16 +33,6 @@ firstlogindate: DataTypes.DATE,
   timestamps: false,
 });
 
-  User.associate = (models) => {
-    User.belongsToMany(models.Chat, {
-      through: models.ChatParticipant,
-      foreignKey: "user_id",
-      as: "chats"
-    });
-    User.hasMany(models.Message, {
-      foreignKey: "sender_id",
-      as: "messages"
-    });
-  };
+  
 
 module.exports = User;

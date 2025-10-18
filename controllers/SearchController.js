@@ -1,14 +1,15 @@
 const db = require('../config/db');
-const Product = require('../models/Product');
+const {Images} = require('../models');
 
 exports.searchProducts = async (req, res) => {
   try {
     const query = req.query.q;
+    //console.log("query",query);
     if (!query) return res.status(400).json({ error: 'Search query required' });
 
-    const results = await Product.findAll({
+    const results = await Images.findAll({
       where: {
-        product_id: {
+        productId: {
           [db.Sequelize.Op.like]: `%${query}%`
         },
         status: {
@@ -16,6 +17,7 @@ exports.searchProducts = async (req, res) => {
     }
       }
     });
+   // console.log(results);
 
     res.json(results);
   } catch (err) {

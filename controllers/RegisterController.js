@@ -4,7 +4,7 @@ const db = require("../config/db");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
-const User = require("../models/User");
+const {User} = require("../models");
 
 exports.register = async (req, res) => {
   const { firstname, lastname, email, phonenumber, password } = req.body;

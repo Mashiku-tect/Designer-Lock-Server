@@ -14,4 +14,7 @@ router.post(
 router.delete('/orders/:productId', verifyToken, orderController.deleteOrder);
 //router.delete('/orders/:productId', authenticateToken, deleteOrder);
 
+
+router.put('/orders/:orderid',verifyToken,upload.array('files', 10),orderController.EditOrder);
+
 module.exports = router;

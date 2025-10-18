@@ -4,6 +4,6 @@ const paymentController = require('../controllers/PaymentController');
 const authenticateToken = require('../middleware/authMiddleware');
 
 router.post('/checkpayment',authenticateToken, paymentController.checkPaymentStatus);
-router.post('/pay',authenticateToken, paymentController.payForProduct);
+//router.post('/pay',authenticateToken, paymentController.payForProduct);
 
 module.exports = router;

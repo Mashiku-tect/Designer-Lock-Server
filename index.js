@@ -2,10 +2,7 @@ const express = require('express');
 const app = express();
 require('dotenv').config();
 const sequelize = require('./config/db');
-const User = require('./models/User');
-const Product=require('./models/Product');
-const Payment =require('./models/Payment');
-const Message=require('./models/Message');
+
 
 // Middleware
 app.use(express.json());
@@ -23,6 +20,18 @@ const profileRoutes = require('./routes/ProfileRoutes');
 const designerRoutes = require('./routes/DesignersRoutes');
 const verifyRoutes = require('./routes/VerifyRoutes');
 const ForgotResetPasswordRoutes = require('./routes/ForgotResetPasswordRoutes');
+const FindeProductPriceRoutes=require('./routes/FetchProductPriceRoutes');
+const MediaDownloadRoutes=require('./routes/MediaDownloadRoutes');
+const PayInRoutes=require('./routes/PayInRoutes');
+const feedRoutes = require('./routes/feedRoutes');
+const commentRoutes = require('./routes/CommentsRoutes');
+const LikesRoutes = require('./routes/LikesRoutes');
+
+
+
+
+
+
 
 
 
@@ -38,6 +47,12 @@ app.use('/api', checkpayment);
 app.use('/api', designerRoutes);
 app.use('/api', verifyRoutes);
 app.use('/api', ForgotResetPasswordRoutes);
+app.use('/api',FindeProductPriceRoutes);
+app.use('/api',MediaDownloadRoutes);
+app.use('/api',PayInRoutes);
+app.use('/api', feedRoutes);
+app.use('/api', commentRoutes);
+app.use('/api', LikesRoutes);
 // Test DB connection
 sequelize.authenticate()
   .then(() => console.log('✅ MySQL connected...'))

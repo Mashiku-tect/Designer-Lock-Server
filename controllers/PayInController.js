@@ -1,0 +1,456 @@
+const crypto = require('crypto');
+
+const ClickPesaPaymentClient = require('./services/ClickPesaClient');
+const {Payment,Payout,User,Product} = require('../models');
+
+
+const client = new ClickPesaPaymentClient({
+  apiKey: 'SKqBIbVFFjwQ5p8X0jyFkeGAn4icLYEtuu2pmBRNym',
+  clientId:'ID0G6xHpubjTr3uq4sRICeJNER8YUw6m'
+});
+
+const MOBILE_MONEY_FEES = [
+  { min: 100, max: 999, fee: 52 },
+  { min: 1000, max: 1999, fee: 72 },
+  { min: 2000, max: 2999, fee: 104 },
+  { min: 3000, max: 3999, fee: 116 },
+  { min: 4000, max: 4999, fee: 168 },
+  { min: 5000, max: 6999, fee: 234 },
+  { min: 7000, max: 7999, fee: 360 },
+  { min: 8000, max: 9999, fee: 430 },
+  { min: 10000, max: 14999, fee: 642 },
+  { min: 15000, max: 19999, fee: 680 },
+  { min: 20000, max: 29999, fee: 700 },
+  // add more ranges as needed
+];
+
+
+function getFixedFee(amount) {
+  const feeObj = MOBILE_MONEY_FEES.find(f => amount >= f.min && amount <= f.max);
+  return feeObj ? feeObj.fee : 0;
+}
+
+//format phone number
+function normalizePhoneNumber(phone) {
+  if (!phone) return null;
+
+  // Remove all non-digit characters
+  phone = phone.replace(/\D/g, '');
+
+  // If starts with '0', replace it with '255'
+  if (phone.startsWith('0')) {
+    phone = '255' + phone.slice(1);
+  }
+
+  // If starts with '255', leave as is
+  // If starts with '255' after removing '+', you're good
+  else if (phone.startsWith('255')) {
+    // Already in international format
+  }
+
+  // If starts with anything else (e.g. missing country code), reject
+  else {
+    return null;
+  }
+
+  // Must be exactly 12 digits after formatting (e.g., 255626779507)
+  return phone.length === 12 ? phone : null;
+}
+
+
+
+const SECRET_KEY = process.env.CHECKSUM_SECRET;
+
+// Generate checksum function
+function generateChecksum({ orderReference, amount, phoneNumber }) {
+  const dataString = `${orderReference}${amount}${phoneNumber}${SECRET_KEY}`;
+  return crypto.createHash('sha256').update(dataString).digest('hex');
+}
+
+// Pay (called from React Native app)
+exports.pay = async (req, res) => {
+  try {
+    const { productid, amount, phoneNumber } = req.body;
+    const user_id = req.user.id;
+    //console.log("Body",req.body);
+    const orderReference = Math.random().toString(36).substring(2, 10).toUpperCase();
+
+    const checksum = generateChecksum({ orderReference, amount, phoneNumber });
+
+    const paymentData = {
+      orderReference,
+      amount,
+      currency: "TZS",
+      phoneNumber,
+      fetchSenderDetails: false,
+      checksum
+    };
+
+    // Optional: preview (can remove if you want)
+    await client.previewUSSDPushRequest(paymentData);
+
+    //remove fetchDetails key
+    const paymentDataB = { ...paymentData };
+delete paymentDataB.fetchSenderDetails;
+
+    // Initiate payment
+    const result = await client.initiateUSSDPushRequest(paymentDataB);
+
+    //Save to DB
+    await Payment.create({
+        user_id,
+      orderReference,
+      product_id: productid,
+      amount,
+      phone:phoneNumber,
+      status: 'PENDING'
+    });
+    // console.log("Passed Payment Creation");
+    res.json({ success: true, orderReference, data: result });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// Check status
+exports.checkStatus = async (req, res) => {
+  try {
+    const { orderReference } = req.params;
+    const result = await client.checkUSSDPushTransactionStatus(orderReference);
+
+    const payment = await Payment.findOne({ where: { orderReference } });
+    if (payment) {
+      payment.status = result.transactionStatus; // SUCCESS / FAILED / PENDING
+      await payment.save();
+    }
+
+    res.json({ success: true, data: result });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// exports.handleWebhook = async (req, res) => {
+//   try {
+//     console.log("Inside handleWebhook");
+//     const { event, eventType, data } = req.body;
+//     const eventName = event || eventType;
+//     console.log("Body",req.body);
+
+//     if (!data || !data.orderReference) {
+//       return res.status(400).json({ success: false, message: "Invalid webhook payload" });
+//     }
+
+//     // ✅ Payment success
+//     if (eventName === "PAYMENT RECEIVED") {
+//       const {
+//         paymentId,
+//         orderReference,
+//         collectedAmount,
+//         collectedCurrency,
+//         status,
+//         clientId,
+//       } = data;
+
+//       // Pull payment with product + user (designer) relation
+//       const payment = await Payment.findOne({
+//         where: { orderReference },
+//         include: {
+//           model: Product,
+//           include: [User]
+//         }
+//       });
+
+//       if (!payment) {
+//         console.warn(`Payment not found for orderReference: ${orderReference}`);
+//         return res.status(200).json({ success: true });
+//       }
+
+//     await Payment.update(
+//         {
+//           status,
+//           transactionId: paymentId,
+         
+//           customerName: customer.name,
+        
+//           clientId,
+//           updatedAt
+//         },
+//         { where: { orderReference } }
+//       );
+
+//       // Designer phone
+//       const designerPhone = payment.Product?.User?.phonenumber;
+//       if (!designerPhone) {
+//         console.error(`No phone found for designer of product ${payment.product_id}`);
+//         return res.status(200).json({ success: true });
+//       }
+
+
+//        const checksum=generateChecksum(orderReference,collectedAmount,designerPhone);
+//       // Trigger payout
+//       const payoutData = {
+//         amount: collectedAmount,
+//         phoneNumber: designerPhone,
+//         currency: collectedCurrency,
+//         orderReference: `PO_${orderReference}`,
+//         checksum: checksum // TODO: generate proper checksum
+//       };
+
+//       try {
+//         const payoutStatus = await payoutClient.processPayout(payoutData);
+
+//         // await Payout.create({
+//         //   orderReference: payoutData.orderReference,
+//         //   paymentReference: orderReference,
+//         //   amount: payoutData.amount,
+//         //   phone: payoutData.phoneNumber,
+//         //   status: payoutStatus.status || 'PENDING'
+//         // });
+
+//         await Payout.create({
+//   orderReference: payoutData.orderReference,
+//   paymentReference: orderReference,
+//   amount: payoutData.amount,
+//   currency: payoutData.currency,
+//   phone: payoutData.phoneNumber,
+//   status: payoutStatus.status || 'PENDING',
+//   transactionId: payoutStatus.transactionId || null,
+//   failureReason: payoutStatus.message || null
+// });
+
+
+//         console.log(`💸 Payout initiated for designer ${designerPhone}`);
+//       } catch (err) {
+//         console.error("❌ Failed to process payout:", err.message);
+//       }
+//     }
+
+//     // ❌ Payment failed
+//     else if (eventName === "PAYMENT FAILED") {
+//       const { orderReference, status, message } = data;
+//     //   await Payment.update(
+//     //     { status, failureReason: message },
+//     //     { where: { orderReference } }
+//     //   );
+
+//     await Payment.update(
+//         {
+//           status,
+//           transactionId: id,
+//           //failureReason: message,
+//           clientId,
+//           updatedAt
+//         },
+//         { where: { orderReference } }
+//       );
+//     }
+
+//     res.status(200).json({ success: true });
+//   } catch (err) {
+//     console.error("Webhook error:", err);
+//     res.status(500).json({ success: false });
+//   }
+// };
+
+
+
+
+exports.handleWebhook = async (req, res) => {
+  try {
+    //console.log("Inside handleWebhook");
+    //console.log("Body", req.body);
+
+    const { event, eventType, data } = req.body;
+    const eventName = event || eventType;
+
+    if (!data || !data.orderReference) {
+      return res.status(400).json({ success: false, message: "Invalid webhook payload" });
+    }
+
+    // ✅ Payment success
+    if (eventName === "PAYMENT RECEIVED") {
+      const {
+        paymentId,
+        orderReference,
+        collectedAmount,
+        collectedCurrency,
+        status,
+        clientId,
+        customer = {},
+      } = data;
+
+      // Pull payment with product + user (designer) relation
+      const payment = await Payment.findOne({
+        where: { orderReference },
+        include: {
+          model: Product,
+          include: [User],
+        },
+      });
+
+      if (!payment) {
+        console.warn(`Payment not found for orderReference: ${orderReference}`);
+        return res.status(200).json({ success: true });
+      }
+
+      // Update payment
+      await Payment.update(
+        {
+          status,
+          transactionId: paymentId,
+          customerName: customer.name || null,
+          clientId,
+        },
+        { where: { orderReference } }
+      );
+
+      //Update The Payment Status in the Product Model
+      await Product.update(
+        { status: "Completed" },
+        { where: { product_id: payment.product_id } }
+      );
+
+
+      // Designer phone
+      let designerPhone = payment.Product?.User?.phonenumber;
+      if (!designerPhone) {
+        console.error(`No phone found for designer of product ${payment.product_id}`);
+        return res.status(200).json({ success: true });
+      }
+
+
+      // Normalize phone number to format: 255XXXXXXXXX
+designerPhone = normalizePhoneNumber(designerPhone);
+
+if (!designerPhone) {
+  console.error(`Invalid phone format for designer of product ${payment.product_id}`);
+  return res.status(200).json({ success: true });
+}
+
+      //console.log("Designers Phone Number Is",designerPhone);
+
+      // Calculate payout amount
+      const fixedFee = getFixedFee(Number(collectedAmount));
+      const platformFee = Number(collectedAmount) * 0.02; // 2%
+      const payoutAmount = Number(collectedAmount) - fixedFee - platformFee;
+
+      //console.log(`💰 Collected: ${collectedAmount}, Fee: ${fixedFee}, 2%: ${platformFee}, Payout: ${payoutAmount}`);
+
+      // ✅ Correct checksum
+      const checksum = generateChecksum({
+        orderReference,
+        amount: collectedAmount,
+        phoneNumber: designerPhone,
+      });
+
+      // Trigger payout
+      const payoutData = {
+        amount: payoutAmount,
+        phoneNumber: designerPhone,
+        currency: collectedCurrency,
+        orderReference: `PO${orderReference}`,
+        exchange: { fromCurrency: 'USD', toCurrency: 'USD', rate: 1, amount: collectedAmount },
+        checksum,
+      };
+
+      try {
+        //const payoutStatus = await client.processPayout(payoutData);
+        const payoutStatus = await client.processMobilePayout(payoutData)
+
+
+        await Payout.create({
+          orderReference: payoutData.orderReference,
+          paymentReference: orderReference,
+          amount: payoutData.amount,
+          currency: payoutData.currency,
+          phone: payoutData.phoneNumber,
+          status: payoutStatus.status || "PENDING",
+          transactionId: payoutStatus.transactionId || null,
+          failureReason: payoutStatus.message || null,
+        });
+
+        //console.log(`💸 Payout initiated for designer ${designerPhone}`);
+      } catch (err) {
+        console.error("❌ Failed to process payout:", err.message);
+      }
+    }
+
+    // ❌ Payment failed
+    else if (eventName === "PAYMENT FAILED") {
+      const { orderReference, status, message, id, clientId } = data;
+
+      await Payment.update(
+        {
+          status,
+          transactionId: id,
+          failureReason: message,
+          clientId,
+        },
+        { where: { orderReference } }
+      );
+    }
+
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error("Webhook error:", err);
+    res.status(500).json({ success: false });
+  }
+};
+
+
+
+//Payout webhook handler (if needed)
+exports.handlePayoutWebhook = async (req, res) => {
+  try {
+    const { event, data } = req.body;
+
+    if (!event || !data) {
+      return res.status(400).json({ message: 'Invalid webhook payload' });
+    }
+
+    // We only care about payout events
+    if (event === 'PAYOUT INITIATED') {
+      const {
+        orderReference,
+        status,
+        amount,
+        currency,
+        channel,
+        channelProvider,
+        notes
+      } = data;
+
+      // Find the payout record by orderReference
+      const payout = await Payout.findOne({ where: { orderReference } });
+
+      if (!payout) {
+        // If payout doesn’t exist, optionally create it
+        // await Payout.create({
+        //   orderReference,
+        //   amount,
+        //   currency,
+        //   status,
+        //   channel,
+        //   channelProvider,
+        //   notes
+        // });
+        // console.log(`🆕 New payout recorded: ${orderReference} (${status})`);
+        return res.status(200).json({ message: 'Payout record not found, no action taken' });
+      } else {
+        // Update existing payout
+        payout.status = status;
+        // payout.channel = channel;
+        // payout.channelProvider = channelProvider;
+        // payout.notes = notes;
+        await payout.save();
+        //console.log(`✅ Payout updated: ${orderReference} → ${status}`);
+      }
+    }
+
+    res.status(200).json({ message: 'Webhook processed successfully' });
+  } catch (error) {
+    console.error('❌ Error processing ClickPesa webhook:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};

@@ -1,13 +1,22 @@
 // controllers/profileController.js
 const db = require("../config/db");
-const User = require('../models/User');
+const {User,Skills} = require('../models');
 
 exports.getProfile = async (req, res) => {
   try {
     const user = await User.findByPk(req.user.id, {
-      attributes: [ 'firstname', 'lastname', 'email', 'phonenumber', 'bio', 'x', 'instagram',  'website', 'profileimage','posts','location']
+      attributes: [ 'firstname', 'lastname', 'email', 'phonenumber', 'bio', 'x', 'instagram',  'website', 'profileimage','posts','location','work','education','professionalsummary'],
+          include: [{
+        model: Skills,
+        attributes: ['id','skill'] // Assuming the skill has a 'name' field
+      }]
     });
     if (!user) return res.status(404).json({ error: 'User not found' });
+
+   //console.log('Fetched user:', user.toJSON());
+       // Extract skill names into a plain array
+    //const skillsArray = user.Skills.map(skill => skill.skill);
+   // console.log('User skills:', skillsArray);
    
     //console user location
     //console.log('User location:', user.location);
@@ -23,6 +32,10 @@ exports.getProfile = async (req, res) => {
       profileimage: user.profileimage,
       posts: user.posts,
       location: user.location,
+      work: user.work,
+      education: user.education,
+      skills: user.Skills, // Send the full skill objects
+      professionalsummary: user.professionalsummary,
     });
   } catch (err) {
     console.error('getProfile error:', err);
@@ -33,6 +46,7 @@ exports.getProfile = async (req, res) => {
 exports.updateProfile = async (req, res) => {
   try {
     const payload = { ...req.body };
+    //console.log('Update payload:', payload);
 
     await User.update(payload, { where: { user_id: req.user.id } });
     const updated = await User.findByPk(req.user.id, {
@@ -79,3 +93,43 @@ exports.uploadProfileImage = async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+//add a user skill
+
+exports.addUserSkill = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { skills } = req.body;
+    //console.log('Adding skill:', skills, 'for user ID:', userId);
+    if (!skills) {
+      return res.status(400).json({ error: 'Skill is required' });
+    }
+    //create a skill for the user
+    await Skills.create({
+      user_id: userId,
+      skill: skills
+    });
+    //find all skills for the user
+    const userSkills = await Skills.findAll({ where: { user_id: userId } });
+    res.json({success:true, message: 'Skill added',skills: userSkills });
+  } catch (error) {
+    console.error('Add skill error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+
+//remove a user skill
+exports.removeUserSkill = async (req, res) => {
+  try{
+    const skillid = req.params.id;
+    //console.log('Removing skill ID:', skillid); 
+    await Skills.destroy({ where: { id: skillid } });
+    res.json({ success: true, message: 'Skill removed' });
+  }
+  catch (error) {
+    console.error('Remove skill error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+  

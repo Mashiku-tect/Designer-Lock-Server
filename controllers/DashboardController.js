@@ -1,6 +1,5 @@
 const db = require('../config/db');
-const Order = require('../models/Product'); // Assuming Order is a model for orders
-const User = require('../models/User');
+const {User,Product} = require('../models');
 const moment = require('moment');
 const { Op } = require('sequelize');
 
@@ -14,13 +13,13 @@ exports.getDashboardData = async (req, res) => {
     const user = await User.findByPk(user_id);
 
     // Get active orders (e.g., not completed)
-    const activeOrders = await Order.count({
+    const activeOrders = await Product.count({
       where: { user_id, status: 'In Progress' }
     });
 
     // Calculate this month’s revenue
     const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-    const monthlyOrders = await Order.findAll({
+    const monthlyOrders = await Product.findAll({
       where: {
         user_id,
         status: 'Completed',
@@ -39,7 +38,7 @@ exports.getDashboardData = async (req, res) => {
     const now = new Date();
 
     // Today's Revenue
-   const todayRevenue = await Order.sum('price', {
+   const todayRevenue = await Product.sum('price', {
   where: {
     user_id, 
     status: 'Completed', 
@@ -50,7 +49,7 @@ exports.getDashboardData = async (req, res) => {
 });
 
     // Weekly Revenue
-    const weeklyRevenue = await Order.sum('price', {
+    const weeklyRevenue = await Product.sum('price', {
       where: {
         user_id,
         status: 'Completed',
@@ -62,8 +61,8 @@ exports.getDashboardData = async (req, res) => {
 
 
     // Get recent orders (latest 5)
-    const recentOrders = await Order.findAll({
-      where: { user_id, is_visible: true, },
+    const recentOrders = await Product.findAll({
+      where: { user_id, softdeleted: false },
       order: [['createdAt', 'DESC']],
       limit: 5
     });

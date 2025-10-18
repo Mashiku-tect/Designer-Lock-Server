@@ -1,7 +1,7 @@
 // controllers/authController.js
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
-const User = require("../models/User");
+const {User} = require("../models");
 
 exports.forgotPassword = async (req, res) => {
   const { email } = req.body;
