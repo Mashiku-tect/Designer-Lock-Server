@@ -1,10 +1,88 @@
-// routes/auth.js
+// routes/passwordReset.js
 const express = require("express");
-const router = express.Router();
-const forgotPassword  = require("../controllers/ForgotPasswordController");
-const  resetPassword  = require("../controllers/ResetPasswordController");
+const path = require("path");
+const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
+const nodemailer = require("nodemailer");
+const { Op } = require("sequelize");
+const { User } = require("../models"); // adjust path if needed
 
-router.post("/forgotpassword", forgotPassword.forgotPassword);
-router.post("/reset/:token", resetPassword.resetPassword);
+const router = express.Router();
+
+// Serve reset password page
+router.get("/reset/:token", (req, res) => {
+  res.sendFile(path.join(__dirname, "../public/reset.html"));
+});
+
+// Handle password reset form submission
+router.post("/reset-password", async (req, res) => {
+  const { token, password } = req.body;
+
+  try {
+    const user = await User.findOne({
+      where: {
+        resetPasswordToken: token,
+        resetPasswordExpires: { [Op.gt]: Date.now() },
+      },
+    });
+
+    if (!user) {
+      return res
+        .status(400)
+        .json({ message: "Invalid or expired password reset link" });
+    }
+
+    // Hash and save new password
+    const hashed = await bcrypt.hash(password, 10);
+    user.password = hashed;
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
+    await user.save();
+
+    res.json({ message: "Password reset successful! You Can Now Login in the App" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Forgot password route (send reset link)
+router.post("/forgot-password", async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const user = await User.findOne({ where: { email } });
+    if (!user)
+      return res.status(404).json({ message: "No account with that email" });
+
+    const token = crypto.randomBytes(32).toString("hex");
+    user.resetPasswordToken = token;
+    user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+   // console.log('DAte time',Date.now());
+    await user.save();
+
+    const resetLink = `https://75056390767e.ngrok-free.app/api/reset/${token}`; // change to your domain
+
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: "mashikuallen@gmail.com",
+        pass: "jula ugvx etga qbyp",// use app password
+      },
+    });
+
+    await transporter.sendMail({
+      from: "mashikuallen@gmail.com",
+      to: email,
+      subject: "Password Reset",
+      text: `Click the following link to reset your password: ${resetLink}`,
+    });
+
+    res.json({ message: "Password reset link sent to your email." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 module.exports = router;

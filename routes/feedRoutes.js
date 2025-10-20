@@ -5,6 +5,13 @@ const authenticate = require('../middleware/authMiddleware'); // example auth mi
 
 router.get('/feed', authenticate, feedController.getFeed);
 
-router.get('/designers/works/:id', feedController.getDesignerWorks);
+router.get('/designers/works/:id',authenticate, feedController.getDesignerWorks);
+
+//get designer stats
+router.get('/designers/stats/:id', feedController.getDesignerStats);
+
+//folow a designer
+router.post('/designers/toggle-follow/:followingId', authenticate, feedController.toggleFollowDesigner);
+
 
 module.exports = router;

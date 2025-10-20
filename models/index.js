@@ -10,6 +10,7 @@ const Payout = require('./Payout');
 const Skills = require('./Skills');
 const Comments=require('./Comments');
 const Likes=require('./likes');
+const Follow=require('./Follow');
 
 // ==================
 // 📦 Define Associations
@@ -55,6 +56,22 @@ Likes.belongsTo(User, { foreignKey: 'user_id' });
 Product.hasMany(Likes, { foreignKey: 'product_id' });
 Likes.belongsTo(Product, { foreignKey: 'product_id' });
 
+//Follow and User associations
+User.belongsToMany(User, {
+  through: Follow,
+  as: 'Following',
+  foreignKey: 'follower_id',
+  otherKey: 'following_id'
+});
+
+User.belongsToMany(User, {
+  through: Follow,
+  as: 'Followers',
+  foreignKey: 'following_id',
+  otherKey: 'follower_id'
+});
+
+
 module.exports = {
   sequelize,
   User,
@@ -65,4 +82,5 @@ module.exports = {
   Skills,
   Comments,
   Likes,
+  Follow,
 };

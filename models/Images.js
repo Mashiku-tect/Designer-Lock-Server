@@ -17,6 +17,10 @@ const Image = sequelize.define('Image', {
     type: DataTypes.STRING,
     allowNull: false,
   },
+   fileType: {
+    type: DataTypes.ENUM('image', 'video'),
+    defaultValue: 'image',
+  },
   status: { type: DataTypes.STRING, defaultValue: 'In Progress' },
   
 }, {

@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reset Password - Secure Your Account</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        --primary: #2563eb;
+        --primary-hover: #1d4ed8;
+        --success: #10b981;
+        --error: #ef4444;
+        --warning: #f59e0b;
+        --gray-50: #f9fafb;
+        --gray-100: #f3f4f6;
+        --gray-200: #e5e7eb;
+        --gray-300: #d1d5db;
+        --gray-600: #4b5563;
+        --gray-700: #374151;
+        --gray-900: #111827;
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        --radius: 12px;
+        --radius-sm: 8px;
+      }
+
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        line-height: 1.6;
+        color: var(--gray-900);
+      }
+
+      .container {
+        background: white;
+        padding: clamp(24px, 5vw, 40px);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-lg);
+        width: 100%;
+        max-width: 440px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--primary), var(--success));
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 32px;
+      }
+
+      .logo {
+        width: 48px;
+        height: 48px;
+        background: var(--primary);
+        border-radius: 12px;
+        margin: 0 auto 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 700;
+        font-size: 20px;
+      }
+
+      .title {
+        font-size: clamp(24px, 5vw, 28px);
+        font-weight: 700;
+        color: var(--gray-900);
+        margin-bottom: 8px;
+      }
+
+      .subtitle {
+        color: var(--gray-600);
+        font-size: 14px;
+        font-weight: 400;
+      }
+
+      .form-group {
+        margin-bottom: 24px;
+        position: relative;
+      }
+
+      .password-input-wrapper {
+        position: relative;
+      }
+
+      .form-input {
+        width: 100%;
+        padding: 16px;
+        padding-right: 48px;
+        border: 2px solid var(--gray-200);
+        border-radius: var(--radius-sm);
+        font-size: 16px;
+        font-family: inherit;
+        transition: all 0.2s ease;
+        background: var(--gray-50);
+      }
+
+      .form-input:focus {
+        outline: none;
+        border-color: var(--primary);
+        background: white;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+      }
+
+      .form-input::placeholder {
+        color: var(--gray-400);
+      }
+
+      .toggle-password {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: var(--gray-500);
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+        transition: color 0.2s ease;
+      }
+
+      .toggle-password:hover {
+        color: var(--gray-700);
+      }
+
+      .password-strength {
+        margin-top: 8px;
+        font-size: 12px;
+        color: var(--gray-600);
+      }
+
+      .strength-bar {
+        height: 4px;
+        background: var(--gray-200);
+        border-radius: 2px;
+        margin-top: 4px;
+        overflow: hidden;
+      }
+
+      .strength-fill {
+        height: 100%;
+        width: 0%;
+        transition: all 0.3s ease;
+        border-radius: 2px;
+      }
+
+      .strength-weak { background: var(--error); width: 33%; }
+      .strength-medium { background: var(--warning); width: 66%; }
+      .strength-strong { background: var(--success); width: 100%; }
+
+      .submit-btn {
+        width: 100%;
+        padding: 16px;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: var(--radius-sm);
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .submit-btn:hover:not(:disabled) {
+        background: var(--primary-hover);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow);
+      }
+
+      .submit-btn:active:not(:disabled) {
+        transform: translateY(0);
+      }
+
+      .submit-btn:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .loading-spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid transparent;
+        border-top: 2px solid white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      .message {
+        padding: 16px;
+        border-radius: var(--radius-sm);
+        margin-top: 20px;
+        font-size: 14px;
+        font-weight: 500;
+        text-align: center;
+        animation: slideDown 0.3s ease;
+      }
+
+      @keyframes slideDown {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .message.success {
+        background: #ecfdf5;
+        color: var(--success);
+        border: 1px solid #a7f3d0;
+      }
+
+      .message.error {
+        background: #fef2f2;
+        color: var(--error);
+        border: 1px solid #fecaca;
+      }
+
+      .message.info {
+        background: #eff6ff;
+        color: var(--primary);
+        border: 1px solid #bfdbfe;
+      }
+
+      .password-requirements {
+        background: var(--gray-50);
+        padding: 16px;
+        border-radius: var(--radius-sm);
+        margin-top: 16px;
+        font-size: 13px;
+      }
+
+      .password-requirements h4 {
+        margin-bottom: 8px;
+        color: var(--gray-700);
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .requirement {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+        color: var(--gray-600);
+      }
+
+      .requirement.valid {
+        color: var(--success);
+      }
+
+      .requirement.valid::before {
+        content: '✓';
+        color: var(--success);
+        font-weight: bold;
+      }
+
+      .requirement::before {
+        content: '•';
+        color: var(--gray-400);
+      }
+
+      .redirect-notice {
+        text-align: center;
+        margin-top: 20px;
+        font-size: 13px;
+        color: var(--gray-600);
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+      }
+
+      /* Mobile optimizations */
+      @media (max-width: 480px) {
+        body {
+          padding: 16px;
+          align-items: flex-start;
+          padding-top: 40px;
+        }
+
+        .container {
+          padding: 24px 20px;
+        }
+
+        .form-input {
+          padding: 14px;
+          padding-right: 44px;
+        }
+
+        .submit-btn {
+          padding: 14px;
+        }
+      }
+
+      /* Dark mode support */
+      @media (prefers-color-scheme: dark) {
+        .container {
+          background: #1f2937;
+          color: white;
+        }
+
+        .title {
+          color: white;
+        }
+
+        .subtitle {
+          color: #d1d5db;
+        }
+
+        .form-input {
+          background: #374151;
+          border-color: #4b5563;
+          color: white;
+        }
+
+        .form-input:focus {
+          border-color: var(--primary);
+          background: #374151;
+        }
+
+        .password-requirements {
+          background: #374151;
+          color: #d1d5db;
+        }
+
+        .password-requirements h4 {
+          color: #e5e7eb;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="logo">🔒</div>
+        <h1 class="title">Reset Password</h1>
+        <p class="subtitle">Create a new secure password for your account</p>
+      </div>
+
+      <form id="resetForm">
+        <div class="form-group">
+          <div class="password-input-wrapper">
+            <input
+              type="password"
+              id="password"
+              class="form-input"
+              placeholder="Enter your new password"
+              required
+              minlength="8"
+            />
+            <button type="button" class="toggle-password" aria-label="Toggle password visibility">
+              👁️
+            </button>
+          </div>
+          <div class="password-strength">
+            <div>Password strength: <span id="strength-text">-</span></div>
+            <div class="strength-bar">
+              <div class="strength-fill" id="strength-bar"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="password-requirements">
+          <h4>Password Requirements:</h4>
+          <div class="requirement" id="req-length">At least 8 characters</div>
+          <div class="requirement" id="req-uppercase">One uppercase letter</div>
+          <div class="requirement" id="req-lowercase">One lowercase letter</div>
+          <div class="requirement" id="req-number">One number</div>
+          <div class="requirement" id="req-special">One special character</div>
+        </div>
+
+        <button type="submit" class="submit-btn" id="submitBtn">
+          <span id="btn-text">Reset Password</span>
+          <div class="loading-spinner" id="loadingSpinner" style="display: none;"></div>
+        </button>
+      </form>
+
+      <div id="message" class="message" style="display: none;"></div>
+      <div id="redirectNotice" class="redirect-notice" style="display: none;">
+        Redirecting you back to the app...
+      </div>
+    </div>
+
+    <script>
+      const token = window.location.pathname.split("/").pop();
+      let isSubmitting = false;
+
+      // DOM Elements
+      const form = document.getElementById('resetForm');
+      const passwordInput = document.getElementById('password');
+      const togglePasswordBtn = document.querySelector('.toggle-password');
+      const submitBtn = document.getElementById('submitBtn');
+      const btnText = document.getElementById('btn-text');
+      const loadingSpinner = document.getElementById('loadingSpinner');
+      const messageEl = document.getElementById('message');
+      const redirectNotice = document.getElementById('redirectNotice');
+      const strengthText = document.getElementById('strength-text');
+      const strengthBar = document.getElementById('strength-bar');
+
+      // Password visibility toggle
+      togglePasswordBtn.addEventListener('click', () => {
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        togglePasswordBtn.textContent = type === 'password' ? '👁️' : '🔒';
+        togglePasswordBtn.setAttribute('aria-label', 
+          type === 'password' ? 'Show password' : 'Hide password'
+        );
+      });
+
+      // Password strength checker
+      passwordInput.addEventListener('input', () => {
+        checkPasswordStrength(passwordInput.value);
+        validatePasswordRequirements(passwordInput.value);
+      });
+
+      function checkPasswordStrength(password) {
+        let strength = 0;
+        const requirements = {
+          length: password.length >= 8,
+          uppercase: /[A-Z]/.test(password),
+          lowercase: /[a-z]/.test(password),
+          number: /[0-9]/.test(password),
+          special: /[^A-Za-z0-9]/.test(password)
+        };
+
+        // Calculate strength score
+        Object.values(requirements).forEach(req => {
+          if (req) strength++;
+        });
+
+        // Update UI
+        const strengthLabels = ['Very Weak', 'Weak', 'Medium', 'Strong', 'Very Strong'];
+        const strengthClasses = ['strength-weak', 'strength-weak', 'strength-medium', 'strength-strong', 'strength-strong'];
+        
+        strengthText.textContent = strengthLabels[strength] || '-';
+        strengthBar.className = 'strength-fill ' + (strengthClasses[strength] || '');
+      }
+
+      function validatePasswordRequirements(password) {
+        const requirements = {
+          length: password.length >= 8,
+          uppercase: /[A-Z]/.test(password),
+          lowercase: /[a-z]/.test(password),
+          number: /[0-9]/.test(password),
+          special: /[^A-Za-z0-9]/.test(password)
+        };
+
+        // Update requirement indicators
+        Object.keys(requirements).forEach(key => {
+          const element = document.getElementById(`req-${key}`);
+          if (element) {
+            element.classList.toggle('valid', requirements[key]);
+          }
+        });
+      }
+
+      // Form submission
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        if (isSubmitting) return;
+        
+        const password = passwordInput.value.trim();
+        
+        // Basic validation
+        if (password.length < 8) {
+          showMessage('Password must be at least 8 characters long', 'error');
+          return;
+        }
+
+        isSubmitting = true;
+        setSubmitState(true, 'Resetting Password...');
+
+        try {
+          const res = await fetch("/api/reset-password", {
+            method: "POST",
+            headers: { 
+              "Content-Type": "application/json",
+              "Accept": "application/json"
+            },
+            body: JSON.stringify({ token, password }),
+          });
+
+          const data = await res.json();
+          
+          if (res.ok) {
+            showMessage(data.message || 'Password reset successfully!', 'success');
+            passwordInput.disabled = true;
+            submitBtn.disabled = true;
+            
+            // Show redirect notice
+            redirectNotice.style.display = 'block';
+            
+            // Redirect back to app after 3 seconds
+            setTimeout(() => {
+              window.location.href = "myapp://login";
+            }, 3000);
+          } else {
+            showMessage(data.message || 'Failed to reset password. Please try again.', 'error');
+            setSubmitState(false, 'Reset Password');
+          }
+        } catch (err) {
+          console.error('Reset password error:', err);
+          showMessage('Network error. Please check your connection and try again.', 'error');
+          setSubmitState(false, 'Reset Password');
+        } finally {
+          isSubmitting = false;
+        }
+      });
+
+      function setSubmitState(loading, text) {
+        if (loading) {
+          submitBtn.disabled = true;
+          btnText.textContent = text;
+          loadingSpinner.style.display = 'block';
+        } else {
+          submitBtn.disabled = false;
+          btnText.textContent = text;
+          loadingSpinner.style.display = 'none';
+        }
+      }
+
+      function showMessage(text, type) {
+        messageEl.textContent = text;
+        messageEl.className = `message ${type}`;
+        messageEl.style.display = 'block';
+        
+        // Auto-hide error messages after 5 seconds
+        if (type === 'error') {
+          setTimeout(() => {
+            messageEl.style.display = 'none';
+          }, 5000);
+        }
+      }
+
+      // Initialize password strength check
+      checkPasswordStrength('');
+      validatePasswordRequirements('');
+    </script>
+  </body>
+</html>

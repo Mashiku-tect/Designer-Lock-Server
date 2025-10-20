@@ -27,42 +27,41 @@ exports.createOrder = async (req, res) => {
     clientname,
     clientphonenumber,
     price,
-   
   } = req.body;
 
   try {
     if (!clientname) {
-      return res.status(400).json({ message: 'Product name is required' });
+      return res.status(400).json({ message: 'Client name is required' });
     }
 
     const product_id = await generateUniqueProductId(clientname, designtitle);
 
-    // 1. Create product
+    // 1️⃣ Create product
     const newProduct = await Product.create({
       productname: designtitle,
       clientname,
       clientphonenumber,
       price,
-      
       user_id: req.user.id,
       product_id,
       designtitle,
     });
 
-    // 2. Save each image path in the Images table
+    // 2️⃣ Save uploaded files (images/videos)
     if (req.files && req.files.length > 0) {
-      const imageEntries = req.files.map(file => ({
-        productId: product_id, // assuming your column is camelCase in Sequelize
-        path: file.path.replace(/\\/g, '/')
-      }));
+      const fileEntries = req.files.map(file => {
+        const fileType = file.mimetype.startsWith('video') ? 'video' : 'image';
+        return {
+          productId: product_id,
+          path: file.path.replace(/\\/g, '/'),
+          fileType, // ✅ new field to distinguish media type
+        };
+      });
 
-      //console.log("product id is",product_id);
-
-      // Bulk insert into Images table
-      await Images.bulkCreate(imageEntries);
+      await Images.bulkCreate(fileEntries);
     }
 
-    // 3. Increment user's post count
+    // 3️⃣ Increment user's post count
     await User.increment('posts', { where: { user_id: req.user.id } });
 
     return res.status(201).json({
@@ -75,6 +74,7 @@ exports.createOrder = async (req, res) => {
     return res.status(500).json({ message: 'Server error' });
   }
 };
+
 
 // DELETE /api/orders/:productId
 exports.deleteOrder = async (req, res) => {
@@ -122,43 +122,58 @@ exports.deleteOrder = async (req, res) => {
 
 
 //edit order function beggins
+exports.EditOrder = async (req, res) => {
+  try {
+    const { orderid } = req.params;
+    const { clientname, clientphonenumber, designtitle, price } = req.body;
+    const product_id = orderid;
 
-exports.EditOrder=async (req,res)=>{
-const {orderid}=req.params;
-const {clientname,clientphonenumber,designtitle,price}=req.body;
-const product_id=orderid;
-const product=await Product.findByPk(product_id);
-if(!product){
-    return res.status(404).json({message:"Order Not Found"});
-}
-Product.update({
-    clientname,
-    clientphonenumber,
-    designtitle,
-    productname:designtitle,
-    price
-},{
-    where:{product_id:product_id}
-})
+    const product = await Product.findByPk(product_id);
+    if (!product) {
+      return res.status(404).json({ message: "Order Not Found" });
+    }
 
-await Images.destroy({
-      where: { productId: product_id}
+    await Product.update(
+      {
+        clientname,
+        clientphonenumber,
+        designtitle,
+        productname: designtitle,
+        price,
+      },
+      { where: { product_id: product_id } }
+    );
+
+    // Remove old files
+    await Images.destroy({
+      where: { productId: product_id },
     });
 
-     if (req.files && req.files.length > 0) {
-      const imageEntries = req.files.map(file => ({
-        productId: product_id, // assuming your column is camelCase in Sequelize
-        path: file.path.replace(/\\/g, '/')
-      }));
+    // Upload new files
+    if (req.files && req.files.length > 0) {
+      const imageEntries = req.files.map((file) => {
+        const isImage = file.mimetype.startsWith('image/');
+        const isVideo = file.mimetype.startsWith('video/');
 
-      //console.log("existing files are there");
+        let fileType = 'image';
+        if (isVideo) fileType = 'video';
+        else if (!isImage) fileType = 'unknown';
 
-      // Bulk insert into Images table
+        return {
+          productId: product_id,
+          path: file.path.replace(/\\/g, '/'),
+          fileType, // ✅ save whether it's image or video
+        };
+      });
+
       await Images.bulkCreate(imageEntries);
-    }
-    else{
-         return res.status(400).json({message:"Provide Files To Upload"});
+    } else {
+      return res.status(400).json({ message: "Provide Files To Upload" });
     }
 
-    return res.status(200).json({message:"Order Updated Successfully"})
-}
+    return res.status(200).json({ message: "Order Updated Successfully" });
+  } catch (error) {
+    console.error("EditOrder Error:", error);
+    return res.status(500).json({ message: "Server Error", error: error.message });
+  }
+};
