@@ -3,22 +3,30 @@
 const db = require("../config/db");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
+const validator = require('validator');
 const nodemailer = require("nodemailer");
 const {User} = require("../models");
 
 exports.register = async (req, res) => {
   const { firstname, lastname, email, phonenumber, password } = req.body;
+  if(!firstname||!lastname||!email||!phonenumber||!password){
+    return res.status(400).json({success:false,message:"Missing Required Fields"})
+  }
+  //check the validity of the email
+  if(!validator.isEmail(email)){
+     return res.status(400).json({success:false,message:"Provide a valid Email"})
+  }
 
   try {
     // Check if user exists
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
-      return res.status(400).json({ message: "Email already registered" });
+      return res.status(400).json({success:false, message: "Email already registered" });
     }
 
     const existingPhone = await User.findOne({ where: { phonenumber } });
     if (existingPhone) {
-      return res.status(400).json({ message: "Phone number already in use" });
+      return res.status(400).json({ success:false,message: "Phone number already in use" });
     }
 
     // Hash password
@@ -56,11 +64,11 @@ exports.register = async (req, res) => {
       text: `Hi ${user.firstname}, please verify your email by clicking the following link: ${verifyLink}`,
     });
 
-    return res.status(201).json({
+    return res.status(201).json({success:true,
       message: "Registration successful! Please check your email to verify your account.",
     });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({success:false, message: "Internal server error" });
   }
 };

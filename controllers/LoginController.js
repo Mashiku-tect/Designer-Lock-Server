@@ -10,6 +10,9 @@ const JWT_SECRET = process.env.JWT_SECRET || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVC
 
 exports.login = async (req, res) => {
   const { email, password } = req.body;
+  if(!email||!password){
+    return res.status(400).json({success:false,message:"Missing Required Fields"});
+  }
 
   try {
     // Find user by email or phone
@@ -20,17 +23,17 @@ exports.login = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(400).json({ message: 'Invalid email' });
+      return res.status(400).json({success:false, message: 'Invalid Email Or Password' });
     }
     if (!user.isVerified) {
-  return res.status(403).json({ message: "Please verify your email before logging in" });
+  return res.status(403).json({success:false, message: "Please verify your email before logging in" });
  }
 
 
     // Check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Incorrect password' });
+      return res.status(401).json({ message: 'Incorrect Username Or Password' });
     }
 
     // Create JWT token
@@ -56,6 +59,7 @@ exports.login = async (req, res) => {
 
 
     return res.status(200).json({
+      success:true,
       message: 'Login successful',
       token,
       user: {
@@ -68,6 +72,6 @@ exports.login = async (req, res) => {
     });
   } catch (err) {
     console.error('Login error:', err);
-    return res.status(500).json({ message: 'Server error' });
+    return res.status(500).json({ success:false,message: 'Server error' });
   }
 };

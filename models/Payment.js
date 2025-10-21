@@ -13,10 +13,10 @@ const Payment = sequelize.define('Payment', {
   amount: { type: DataTypes.INTEGER, allowNull: false },
   status: { type: DataTypes.STRING, allowNull: false },
   clientId: { type: DataTypes.STRING, allowNull: true },
-  customerName: { type: DataTypes.STRING, allowNull: true },
+  
 
-  transactionId: { type: DataTypes.STRING, allowNull: true },
-  failureReason: { type: DataTypes.TEXT, allowNull: true},
+  channel: { type: DataTypes.STRING, allowNull: true },
+ 
 
   createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
   updatedAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },

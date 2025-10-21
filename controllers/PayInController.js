@@ -5,8 +5,8 @@ const {Payment,Payout,User,Product} = require('../models');
 
 
 const client = new ClickPesaPaymentClient({
-  apiKey: 'SKqBIbVFFjwQ5p8X0jyFkeGAn4icLYEtuu2pmBRNym',
-  clientId:'ID0G6xHpubjTr3uq4sRICeJNER8YUw6m'
+  apiKey: 'XXX',
+  clientId:'XXXX'
 });
 
 const MOBILE_MONEY_FEES = [
@@ -67,12 +67,51 @@ function generateChecksum({ orderReference, amount, phoneNumber }) {
   return crypto.createHash('sha256').update(dataString).digest('hex');
 }
 
+//validate phone number operator
+function validatePhoneNumber(phoneNumber) {
+  // Ensure it's digits only
+  if (!/^\d+$/.test(phoneNumber)) {
+    return { valid: false, message: "Phone number must contain only digits" };
+  }
+
+  // Must start with country code 255 and be 12 digits long
+  if (!phoneNumber.startsWith("255") || phoneNumber.length !== 12) {
+    return { valid: false, message: "Invalid phone number format" };
+  }
+
+  // Extract network prefix (next two digits after 255)
+  const prefix = phoneNumber.substring(3, 5);
+
+  const halotelPrefixes = ["62", "67","61"];
+  const tigoPrefixes = ["65", "71"];
+  const airtelPrefixes = ["68", "78"];
+
+  if (halotelPrefixes.includes(prefix)) {
+    return { valid: true, operator: "Halotel" };
+  } else if (tigoPrefixes.includes(prefix)) {
+    return { valid: true, operator: "Tigo" };
+  } else if (airtelPrefixes.includes(prefix)) {
+    return { valid: true, operator: "Airtel" };
+  } else {
+    return {
+      valid: false,
+      message: "Unsupported network. Only Halotel, Yas, and Airtel are allowed.",
+    };
+  }
+}
+
+
 // Pay (called from React Native app)
 exports.pay = async (req, res) => {
   try {
     const { productid, amount, phoneNumber } = req.body;
     const user_id = req.user.id;
     //console.log("Body",req.body);
+    const { valid, message} = validatePhoneNumber(phoneNumber);
+
+    if (!valid) {
+      return res.status(400).json({success:false, message });
+    }
     const orderReference = Math.random().toString(36).substring(2, 10).toUpperCase();
 
     const checksum = generateChecksum({ orderReference, amount, phoneNumber });
@@ -87,7 +126,8 @@ exports.pay = async (req, res) => {
     };
 
     // Optional: preview (can remove if you want)
-    await client.previewUSSDPushRequest(paymentData);
+   const previewresult= await client.previewUSSDPushRequest(paymentData);
+  // console.log("preview result",previewresult);
 
     //remove fetchDetails key
     const paymentDataB = { ...paymentData };
@@ -95,6 +135,7 @@ delete paymentDataB.fetchSenderDetails;
 
     // Initiate payment
     const result = await client.initiateUSSDPushRequest(paymentDataB);
+    //console.log("Payment Channel",result.channel);
 
     //Save to DB
     await Payment.create({
@@ -103,12 +144,13 @@ delete paymentDataB.fetchSenderDetails;
       product_id: productid,
       amount,
       phone:phoneNumber,
-      status: 'PENDING'
+      channel:result.channel,
+      status: 'PROCESSING'
     });
     // console.log("Passed Payment Creation");
-    res.json({ success: true, orderReference, data: result });
+    res.status(200).json({ success: true, orderReference, data: result,message:"Your Payment is Processed You will be redirected Shortly" });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ success: false, message:'Something Went Wrong,Try Again Later' });
   }
 };
 
@@ -298,8 +340,6 @@ exports.handleWebhook = async (req, res) => {
       await Payment.update(
         {
           status,
-          transactionId: paymentId,
-          customerName: customer.name || null,
           clientId,
         },
         { where: { orderReference } }
@@ -383,8 +423,7 @@ if (!designerPhone) {
       await Payment.update(
         {
           status,
-          transactionId: id,
-          failureReason: message,
+         
           clientId,
         },
         { where: { orderReference } }
@@ -425,24 +464,12 @@ exports.handlePayoutWebhook = async (req, res) => {
       const payout = await Payout.findOne({ where: { orderReference } });
 
       if (!payout) {
-        // If payout doesn’t exist, optionally create it
-        // await Payout.create({
-        //   orderReference,
-        //   amount,
-        //   currency,
-        //   status,
-        //   channel,
-        //   channelProvider,
-        //   notes
-        // });
-        // console.log(`🆕 New payout recorded: ${orderReference} (${status})`);
+        
         return res.status(200).json({ message: 'Payout record not found, no action taken' });
       } else {
         // Update existing payout
         payout.status = status;
-        // payout.channel = channel;
-        // payout.channelProvider = channelProvider;
-        // payout.notes = notes;
+        
         await payout.save();
         //console.log(`✅ Payout updated: ${orderReference} → ${status}`);
       }

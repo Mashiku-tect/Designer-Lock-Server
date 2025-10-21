@@ -16,6 +16,28 @@ async function generateUniqueProductId(clientName, designTitle) {
   return product_id;
 }
 
+//Validate Price
+function isValidPrice(input) {
+  // Must be a string or number
+  if (typeof input !== 'string' && typeof input !== 'number') return false;
+
+  // Convert to string and trim
+  const str = String(input).trim();
+
+  // Strict regex: only digits and optional decimal (no letters, no "-")
+  const validFormat = /^\d+(\.\d{1,2})?$/;
+
+  // Check format
+  if (!validFormat.test(str)) return false;
+
+  // Convert to number
+  const num = Number(str);
+
+  // Final check: number must be finite and non-negative
+  return Number.isFinite(num) && num >= 0;
+}
+
+
 //end of function
 // Controller function to create a new order
 
@@ -28,11 +50,23 @@ exports.createOrder = async (req, res) => {
     clientphonenumber,
     price,
   } = req.body;
+  //console.log("Body",req.body);
+  //let price2=price;
 
   try {
-    if (!clientname) {
-      return res.status(400).json({ message: 'Client name is required' });
+    if (!clientname||!designtitle||!clientphonenumber||!price) {
+      return res.status(400).json({success:false, message: 'Missing Required Fields' });
     }
+    
+    if (!isValidPrice(price)) {
+      //console.log("Price is Invalid")
+    return res.status(400).json({ success:false,message: 'Invalid price format' });
+  }
+  
+
+ // console.log("Reached Here")
+
+const numericPrice = Number(price);
 
     const product_id = await generateUniqueProductId(clientname, designtitle);
 
@@ -64,14 +98,15 @@ exports.createOrder = async (req, res) => {
     // 3️⃣ Increment user's post count
     await User.increment('posts', { where: { user_id: req.user.id } });
 
-    return res.status(201).json({
+    return res.status(201).json({success:true,
       message: `Product created successfully with ID: ${product_id}`,
       productId: product_id,
     });
 
   } catch (error) {
+    
     console.error('Create product error:', error);
-    return res.status(500).json({ message: 'Server error' });
+    return res.status(500).json({success:false, message: 'Server error' });
   }
 };
 
@@ -123,14 +158,27 @@ exports.deleteOrder = async (req, res) => {
 
 //edit order function beggins
 exports.EditOrder = async (req, res) => {
+ // console.log("Received A request");
   try {
     const { orderid } = req.params;
     const { clientname, clientphonenumber, designtitle, price } = req.body;
     const product_id = orderid;
 
+    //Validate The User Inputs 
+    if(!clientname||!clientphonenumber||!designtitle||!price){
+      return res.status(400).json({success:false,message:"Provide All Required Fileds"});
+    }
+    //validate Price
+    
+    if (!isValidPrice(price)) {
+      console.log("Price is Invalid")
+    return res.status(400).json({ success:false,message: 'Invalid price format' });
+  }
+
+
     const product = await Product.findByPk(product_id);
     if (!product) {
-      return res.status(404).json({ message: "Order Not Found" });
+      return res.status(404).json({ success:false,message: "Order Not Found" });
     }
 
     await Product.update(
@@ -168,12 +216,12 @@ exports.EditOrder = async (req, res) => {
 
       await Images.bulkCreate(imageEntries);
     } else {
-      return res.status(400).json({ message: "Provide Files To Upload" });
+      return res.status(400).json({success:false, message: "Provide Files To Upload" });
     }
 
-    return res.status(200).json({ message: "Order Updated Successfully" });
+    return res.status(200).json({success:true, message: "Order Updated Successfully" });
   } catch (error) {
-    console.error("EditOrder Error:", error);
-    return res.status(500).json({ message: "Server Error", error: error.message });
+    //console.error("EditOrder Error:", error);
+    return res.status(500).json({success:false, message: "Server Error" });
   }
 };
