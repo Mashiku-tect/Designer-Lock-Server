@@ -62,7 +62,7 @@ exports.getDashboardData = async (req, res) => {
 
     // Get recent orders (latest 5)
     const recentOrders = await Product.findAll({
-      where: { user_id, softdeleted: false },
+      where: { user_id, softdeleted: false,orderType: { [Op.ne]: 'designFeed' } },
       order: [['createdAt', 'DESC']],
       limit: 5
     });

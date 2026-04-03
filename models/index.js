@@ -11,6 +11,7 @@ const Skills = require('./Skills');
 const Comments=require('./Comments');
 const Likes=require('./likes');
 const Follow=require('./Follow');
+const Notification = require('./Notification');
 
 // ==================
 // 📦 Define Associations
@@ -66,10 +67,21 @@ User.belongsToMany(User, {
 
 User.belongsToMany(User, {
   through: Follow,
-  as: 'Followers',
+  as: 'Follower',
   foreignKey: 'following_id',
   otherKey: 'follower_id'
 });
+
+// For followers
+Follow.belongsTo(User, { as: 'Followers', foreignKey: 'follower_id' });
+Follow.belongsTo(User, { as: 'Followings', foreignKey: 'following_id' });
+
+User.hasMany(Follow, {as: 'Followings', foreignKey: 'following_id' });
+User.hasMany(Follow, {as: 'Followers', foreignKey: 'follower_id' });
+
+//User & Notification
+User.hasMany(Notification, { foreignKey: 'userId' });
+Notification.belongsTo(User, { foreignKey: 'userId' });
 
 
 module.exports = {
@@ -83,4 +95,5 @@ module.exports = {
   Comments,
   Likes,
   Follow,
+  Notification
 };

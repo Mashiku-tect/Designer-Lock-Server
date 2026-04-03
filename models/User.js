@@ -4,7 +4,7 @@ const sequelize = require('../config/db');
 
 
 const User = sequelize.define('User', {
-  user_id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+  user_id: { type: DataTypes.UUID, defaultValue:DataTypes.UUIDV4, primaryKey: true },
   email: { type: DataTypes.STRING, allowNull: false },
   password: { type: DataTypes.STRING, allowNull: false },
   firstname: { type: DataTypes.STRING, allowNull: false },
@@ -22,6 +22,7 @@ const User = sequelize.define('User', {
   isVerified: { type: DataTypes.BOOLEAN, defaultValue: false },
     verificationToken: { type: DataTypes.STRING },
     resetPasswordToken: { type: DataTypes.STRING },
+    expoPushToken: { type: DataTypes.STRING ,allowNull:true},
     work: { type: DataTypes.STRING, defaultValue: 'Not Specified' },
     education: { type: DataTypes.STRING, defaultValue: 'Not Specified' },
     professionalsummary: { type: DataTypes.TEXT, defaultValue: 'Not Specified' },
@@ -30,7 +31,7 @@ resetPasswordExpires: { type: DataTypes.DATE },
 firstlogindate: DataTypes.DATE,
 }, {
   tableName: 'users',
-  timestamps: false,
+  timestamps: true,
 });
 
   

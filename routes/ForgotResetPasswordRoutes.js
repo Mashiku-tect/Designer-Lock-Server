@@ -6,6 +6,7 @@ const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const { Op } = require("sequelize");
 const { User } = require("../models"); // adjust path if needed
+const validator = require('validator'); 
 
 const router = express.Router();
 
@@ -51,6 +52,10 @@ router.post("/forgot-password", async (req, res) => {
   const { email } = req.body;
 
   try {
+    if (!validator.isEmail(email)) {
+      return res.status(400).json({ message: 'Invalid email format' });
+    }
+    
     const user = await User.findOne({ where: { email } });
     if (!user)
       return res.status(404).json({ message: "No account with that email" });
@@ -61,18 +66,20 @@ router.post("/forgot-password", async (req, res) => {
    // console.log('DAte time',Date.now());
     await user.save();
 
-    const resetLink = `https://75056390767e.ngrok-free.app/api/reset/${token}`; // change to your domain
+    const resetLink = `${process.env.SERVER_URL}/api/reset/${token}`; // change to your domain
 
     const transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: "smtppro.zoho.com",
+      port: 465,            // 465 for SSL
+      secure: true,        // true if using 465
       auth: {
-        user: "mashikuallen@gmail.com",
-        pass: "jula ugvx etga qbyp",// use app password
+        user: process.env.ZOHO_EMAIL_USER, // app1@mydomain.com
+        pass: process.env.ZOHO_EMAIL_PASS, // Zoho App Password
       },
     });
 
     await transporter.sendMail({
-      from: "mashikuallen@gmail.com",
+      from: `"PixelProof" <${process.env.ZOHO_EMAIL_USER}>`,
       to: email,
       subject: "Password Reset",
       text: `Click the following link to reset your password: ${resetLink}`,

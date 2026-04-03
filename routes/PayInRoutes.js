@@ -8,7 +8,7 @@ const authenticateToken = require('../middleware/authMiddleware');
 //router.get('/status/:orderReference', paymentController.checkStatus);
 router.post('/pay', authenticateToken,paymentController.pay);
 // routes/paymentRoutes.js
-router.post("/clickpesa/webhook", paymentController.handleWebhook);
+router.post("/payment/webhook", paymentController.handleWebhook);
 
 //webhook for payout
 router.post("/webhook/payoutinitiated", paymentController.handlePayoutWebhook);

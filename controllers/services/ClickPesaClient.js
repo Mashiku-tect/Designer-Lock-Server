@@ -2,9 +2,9 @@ const axios = require('axios');
 
 class ClickPesaPaymentClient {
   constructor({ apiKey, clientId }) {
-    this.apiKey = apiKey;
-    this.clientId = clientId;
-    this.baseUrl = 'https://api.clickpesa.com'; // production URL
+    this.apiKey = process.env.CLICKPESA_API_KEY;
+    this.clientId = process.env.CLICKPESA_CLIENT_ID;
+    this.baseUrl = process.env.CLICKPESA_URL; // production URL
     this.token = null;
     this.tokenExpiry = 0;
   }
@@ -71,9 +71,12 @@ class ClickPesaPaymentClient {
     //console.log("Validation response:", resp.data);
     return resp.data;
     }
-    catch (error) {
-      throw new Error('Payout validation failed: ' + (error.response?.data || error.message));
-    }
+   catch (error) {
+  const details = error.response?.data || error.message;
+  console.log("Error during payout validation:", error.response?.data || error.message);
+  throw new Error('Payout validation failed: ' + JSON.stringify(details, null, 2));
+}
+
    
   }
 
@@ -85,10 +88,11 @@ class ClickPesaPaymentClient {
       payoutData,
       { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
     );
-   // console.log("Payout creation response:", resp.data);
+    //console.log("Payout creation response:", resp.data);
     return resp.data;
     }
     catch (error) {
+      console.log("Error during payout creation:", error.response?.data || error.message);
       throw new Error('Payout creation failed: ' + (error.response?.data || error.message));
     }
    
@@ -116,14 +120,18 @@ class ClickPesaPaymentClient {
       // console.log("Checking balance...");
  const token = await this.getToken();
     //console.log("Using token:", token);
-    const resp = await axios.get(
+    const response = await axios.get(
       `${this.baseUrl}/third-parties/account/balance`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
-    //console.log("Balance Response",resp.data);
-    return resp.data?.balance;
+   // console.log("Balance Response In Clickpesa Client",response.data);
+     const balance = Number(
+  response.data?.balances?.find(b => b.currency === 'TZS')?.balance ?? 0
+);
+    return balance;
     }
     catch (error) {
+      console.log("Error during balance check:", error.response?.data || error.message);
       throw new Error('Balance check failed: ' + (error.response?.data || error.message));
     }
   }
@@ -137,7 +145,7 @@ class ClickPesaPaymentClient {
 
     // Validate payout
     const validation = await this.validateMobilePayout(payoutData);
-   // console.log('Validation successful:', validation);
+    //console.log('Validation successful:', validation);
 
     // Create payout
     const payoutResult = await this.createMobilePayout(payoutData);

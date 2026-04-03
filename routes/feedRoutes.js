@@ -13,5 +13,16 @@ router.get('/designers/stats/:id', feedController.getDesignerStats);
 //folow a designer
 router.post('/designers/toggle-follow/:followingId', authenticate, feedController.toggleFollowDesigner);
 
+//get designer info by an ID
+router.get('/getdesignerinfo/:id',feedController.getDesignerById);
+
+//search for a designer
+router.get('/search/designers', authenticate, feedController.searchDesigners);
+
+//check profile ownership
+router.get('/profile/check-ownership/:user_id', authenticate, feedController.checkProfileOwnership);
+
+router.delete('/posts/delete/:postid',authenticate,feedController.DeletePost);
+
 
 module.exports = router;

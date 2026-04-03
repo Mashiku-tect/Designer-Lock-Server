@@ -26,6 +26,10 @@ const PayInRoutes=require('./routes/PayInRoutes');
 const feedRoutes = require('./routes/feedRoutes');
 const commentRoutes = require('./routes/CommentsRoutes');
 const LikesRoutes = require('./routes/LikesRoutes');
+const FollowerFollowingRoutes=require('./routes/FollowerFollowingroutes');
+const WebHookHandlingRoutes = require('./routes/WebHookHandlingRoutes');
+
+
 
 
 
@@ -53,15 +57,16 @@ app.use('/api',PayInRoutes);
 app.use('/api', feedRoutes);
 app.use('/api', commentRoutes);
 app.use('/api', LikesRoutes);
+app.use('/api', FollowerFollowingRoutes);
+app.use('/api', WebHookHandlingRoutes);
+
+
 // Test DB connection
 sequelize.authenticate()
-  .then(() => console.log('✅ MySQL connected...'))
-  .catch(err => console.error('❌ DB connection error:', err));
+  .then(() => console.log(' MySQL connected...'))
+  .catch(err => console.error(' DB connection error:', err));
 
-// Sync models (optional: use only during development)
-sequelize.sync() // or sequelize.sync({ force: true }) for resetting DB
-  .then(() => console.log('✅ Models synced'))
-  .catch(err => console.error('❌ Sync error:', err));
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(` Server running on port ${PORT}`));

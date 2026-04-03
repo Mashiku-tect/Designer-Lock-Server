@@ -24,6 +24,7 @@
         --gray-100: #f3f4f6;
         --gray-200: #e5e7eb;
         --gray-300: #d1d5db;
+        --gray-400: #9ca3af;
         --gray-600: #4b5563;
         --gray-700: #374151;
         --gray-900: #111827;
@@ -117,7 +118,7 @@
         font-size: 16px;
         font-family: inherit;
         transition: all 0.2s ease;
-        background: var(--gray-50);
+        background: white;
       }
 
       .form-input:focus {
@@ -148,31 +149,6 @@
       .toggle-password:hover {
         color: var(--gray-700);
       }
-
-      .password-strength {
-        margin-top: 8px;
-        font-size: 12px;
-        color: var(--gray-600);
-      }
-
-      .strength-bar {
-        height: 4px;
-        background: var(--gray-200);
-        border-radius: 2px;
-        margin-top: 4px;
-        overflow: hidden;
-      }
-
-      .strength-fill {
-        height: 100%;
-        width: 0%;
-        transition: all 0.3s ease;
-        border-radius: 2px;
-      }
-
-      .strength-weak { background: var(--error); width: 33%; }
-      .strength-medium { background: var(--warning); width: 66%; }
-      .strength-strong { background: var(--success); width: 100%; }
 
       .submit-btn {
         width: 100%;
@@ -338,36 +314,36 @@
       /* Dark mode support */
       @media (prefers-color-scheme: dark) {
         .container {
-          background: #1f2937;
-          color: white;
+          background: white;
+          color: var(--gray-900);
         }
 
         .title {
-          color: white;
+          color: var(--gray-900);
         }
 
         .subtitle {
-          color: #d1d5db;
+          color: var(--gray-600);
         }
 
         .form-input {
-          background: #374151;
-          border-color: #4b5563;
-          color: white;
+          background: white;
+          border-color: var(--gray-200);
+          color: var(--gray-900);
         }
 
         .form-input:focus {
           border-color: var(--primary);
-          background: #374151;
+          background: white;
         }
 
         .password-requirements {
-          background: #374151;
-          color: #d1d5db;
+          background: var(--gray-50);
+          color: var(--gray-600);
         }
 
         .password-requirements h4 {
-          color: #e5e7eb;
+          color: var(--gray-700);
         }
       }
     </style>
@@ -395,22 +371,9 @@
               👁️
             </button>
           </div>
-          <div class="password-strength">
-            <div>Password strength: <span id="strength-text">-</span></div>
-            <div class="strength-bar">
-              <div class="strength-fill" id="strength-bar"></div>
-            </div>
-          </div>
         </div>
 
-        <div class="password-requirements">
-          <h4>Password Requirements:</h4>
-          <div class="requirement" id="req-length">At least 8 characters</div>
-          <div class="requirement" id="req-uppercase">One uppercase letter</div>
-          <div class="requirement" id="req-lowercase">One lowercase letter</div>
-          <div class="requirement" id="req-number">One number</div>
-          <div class="requirement" id="req-special">One special character</div>
-        </div>
+      
 
         <button type="submit" class="submit-btn" id="submitBtn">
           <span id="btn-text">Reset Password</span>
@@ -437,8 +400,6 @@
       const loadingSpinner = document.getElementById('loadingSpinner');
       const messageEl = document.getElementById('message');
       const redirectNotice = document.getElementById('redirectNotice');
-      const strengthText = document.getElementById('strength-text');
-      const strengthBar = document.getElementById('strength-bar');
 
       // Password visibility toggle
       togglePasswordBtn.addEventListener('click', () => {
@@ -450,34 +411,10 @@
         );
       });
 
-      // Password strength checker
+      // Password requirement validation
       passwordInput.addEventListener('input', () => {
-        checkPasswordStrength(passwordInput.value);
         validatePasswordRequirements(passwordInput.value);
       });
-
-      function checkPasswordStrength(password) {
-        let strength = 0;
-        const requirements = {
-          length: password.length >= 8,
-          uppercase: /[A-Z]/.test(password),
-          lowercase: /[a-z]/.test(password),
-          number: /[0-9]/.test(password),
-          special: /[^A-Za-z0-9]/.test(password)
-        };
-
-        // Calculate strength score
-        Object.values(requirements).forEach(req => {
-          if (req) strength++;
-        });
-
-        // Update UI
-        const strengthLabels = ['Very Weak', 'Weak', 'Medium', 'Strong', 'Very Strong'];
-        const strengthClasses = ['strength-weak', 'strength-weak', 'strength-medium', 'strength-strong', 'strength-strong'];
-        
-        strengthText.textContent = strengthLabels[strength] || '-';
-        strengthBar.className = 'strength-fill ' + (strengthClasses[strength] || '');
-      }
 
       function validatePasswordRequirements(password) {
         const requirements = {
@@ -498,58 +435,62 @@
       }
 
       // Form submission
-      form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        if (isSubmitting) return;
-        
-        const password = passwordInput.value.trim();
-        
-        // Basic validation
-        if (password.length < 8) {
-          showMessage('Password must be at least 8 characters long', 'error');
-          return;
-        }
+      // Form submission
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  
+  if (isSubmitting) return;
+  
+  const password = passwordInput.value.trim();
+  
+  // Basic validation
+  if (password.length < 8) {
+    showMessage('Password must be at least 8 characters long', 'error');
+    return;
+  }
 
-        isSubmitting = true;
-        setSubmitState(true, 'Resetting Password...');
+  isSubmitting = true;
+  setSubmitState(true, 'Resetting Password...');
 
-        try {
-          const res = await fetch("/api/reset-password", {
-            method: "POST",
-            headers: { 
-              "Content-Type": "application/json",
-              "Accept": "application/json"
-            },
-            body: JSON.stringify({ token, password }),
-          });
+  try {
+    const res = await fetch("/api/reset-password", {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({ token, password }),
+    });
 
-          const data = await res.json();
-          
-          if (res.ok) {
-            showMessage(data.message || 'Password reset successfully!', 'success');
-            passwordInput.disabled = true;
-            submitBtn.disabled = true;
-            
-            // Show redirect notice
-            redirectNotice.style.display = 'block';
-            
-            // Redirect back to app after 3 seconds
-            setTimeout(() => {
-              window.location.href = "myapp://login";
-            }, 3000);
-          } else {
-            showMessage(data.message || 'Failed to reset password. Please try again.', 'error');
-            setSubmitState(false, 'Reset Password');
-          }
-        } catch (err) {
-          console.error('Reset password error:', err);
-          showMessage('Network error. Please check your connection and try again.', 'error');
-          setSubmitState(false, 'Reset Password');
-        } finally {
-          isSubmitting = false;
-        }
-      });
+    const data = await res.json();
+    
+    if (res.ok) {
+      // Reset button state immediately on success
+      setSubmitState(false, 'Reset Password');
+      
+      showMessage(data.message || 'Password reset successfully!', 'success');
+      passwordInput.disabled = true;
+      submitBtn.disabled = true;
+      
+      // Show redirect notice
+      redirectNotice.style.display = 'block';
+      
+      // Redirect back to app after 3 seconds
+      setTimeout(() => {
+        window.location.href = "myapp://login";
+      }, 3000);
+    } else {
+      showMessage(data.message || 'Failed to reset password. Please try again.', 'error');
+      setSubmitState(false, 'Reset Password');
+    }
+  } catch (err) {
+    console.error('Reset password error:', err);
+    showMessage('Network error. Please check your connection and try again.', 'error');
+    setSubmitState(false, 'Reset Password');
+  } finally {
+    isSubmitting = false;
+  }
+});
 
       function setSubmitState(loading, text) {
         if (loading) {
@@ -576,8 +517,7 @@
         }
       }
 
-      // Initialize password strength check
-      checkPasswordStrength('');
+      // Initialize password validation
       validatePasswordRequirements('');
     </script>
   </body>

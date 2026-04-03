@@ -9,7 +9,7 @@ const {User} = require('../models');
 const JWT_SECRET = process.env.JWT_SECRET || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxMjM0NTYiLCJpYXQiOjE2MzAwMDAwMDB9.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c'; // Store in .env in production
 
 exports.login = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password,pushToken } = req.body;
   if(!email||!password){
     return res.status(400).json({success:false,message:"Missing Required Fields"});
   }
@@ -23,7 +23,7 @@ exports.login = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(400).json({success:false, message: 'Invalid Email Or Password' });
+      return res.status(400).json({success:false, message: 'User Not Found' });
     }
     if (!user.isVerified) {
   return res.status(403).json({success:false, message: "Please verify your email before logging in" });
@@ -34,6 +34,19 @@ exports.login = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ message: 'Incorrect Username Or Password' });
+    }
+
+    //check if push token is not the same as stored one
+    if(pushToken&&pushToken!==user.expoPushToken){
+      //update push token
+      await User.update(
+        {
+          expoPushToken: pushToken,
+        },
+        {
+          where: { user_id: user.user_id }
+        }
+      );
     }
 
     // Create JWT token

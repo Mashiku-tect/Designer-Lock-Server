@@ -48,17 +48,19 @@ exports.register = async (req, res) => {
 
     // Send verification email
     const transporter = nodemailer.createTransport({
-      service: "gmail", // or smtp config
+        host: "smtppro.zoho.com",
+      port: 465,            // 465 for SSL
+      secure: true,        // true if using 465
       auth: {
-        user: "mashikuallen@gmail.com",
-        pass: "jula ugvx etga qbyp",
+        user: process.env.ZOHO_EMAIL_USER, // app1@mydomain.com
+        pass: process.env.ZOHO_EMAIL_PASS, // Zoho App Password
       },
     });
 
-    const verifyLink = `https://4494d8ffd93a.ngrok-free.app/api/verify/${verificationToken}`;
+    const verifyLink = `${process.env.SERVER_URL}/api/verify/${verificationToken}`;
 
     await transporter.sendMail({
-      from: "mashikuallen@gmail.com",
+      from: `"PixelProof" <${process.env.ZOHO_EMAIL_USER}>`,
       to: user.email,
       subject: "Verify your email",
       text: `Hi ${user.firstname}, please verify your email by clicking the following link: ${verifyLink}`,

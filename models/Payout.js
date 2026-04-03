@@ -7,9 +7,9 @@ const sequelize = require('../config/db');
 
   const Payout = sequelize.define("Payout", {
     id: {
-      type: DataTypes.INTEGER,
-      primaryKey: true,
-      autoIncrement: true
+      type: DataTypes.UUID,
+      defaultValue:DataTypes.UUIDV4,
+      primaryKey: true
     },
     orderReference: {
       type: DataTypes.STRING,
@@ -44,7 +44,27 @@ const sequelize = require('../config/db');
     failureReason: {
       type: DataTypes.STRING,
       allowNull: true
-    }
+    },
+    designerid: {
+      type: DataTypes.UUID,
+      allowNull:false,
+      references:{
+        model:'users',
+        key:'user_id'
+      },
+      onUpdate:'CASCADE',
+      onDelete:'CASCADE'
+    },
+     product_id: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      references:{
+        model:'products',
+        key:'product_id'
+      },
+      onUpdate:'CASCADE',
+      onDelete:'CASCADE'
+    },
   },
  {
   tableName: 'payouts',

@@ -1,12 +1,15 @@
 const crypto = require('crypto');
+const axios = require("axios");
+
 
 const ClickPesaPaymentClient = require('./services/ClickPesaClient');
-const {Payment,Payout,User,Product} = require('../models');
+const {Payment,Payout,User,Product,Notification,Images} = require('../models');
+const payoutQueue = require("./queues/PayoutQueue");
 
 
 const client = new ClickPesaPaymentClient({
-  apiKey: 'XXX',
-  clientId:'XXXX'
+  apiKey: process.env.CLICKPESA_API_KEY,
+  clientId:process.env.CLICKPESA_CLIENT_ID
 });
 
 const MOBILE_MONEY_FEES = [
@@ -21,7 +24,20 @@ const MOBILE_MONEY_FEES = [
   { min: 10000, max: 14999, fee: 642 },
   { min: 15000, max: 19999, fee: 680 },
   { min: 20000, max: 29999, fee: 700 },
-  // add more ranges as needed
+  { min: 30000, max: 39999, fee: 980 },
+  { min: 40000, max: 49999, fee: 1038 },
+  { min: 50000, max: 99999, fee: 1460 },
+  { min: 100000, max: 199999, fee: 1868 },
+  { min: 200000, max: 299999, fee: 2220 },
+  { min: 300000, max: 399999, fee: 3180 },
+  { min: 400000, max: 499999, fee: 3764 },
+  { min: 500000, max: 599999, fee: 4672 },
+  { min: 600000, max: 699999, fee: 5712 },
+  { min: 700000, max: 799999, fee: 6560 },
+  { min: 800000, max: 899999, fee: 7800 },
+  { min: 900000, max: 1000000, fee: 8508 },
+  { min: 1000001, max: 3000000, fee: 9346 },
+  { min: 3000001, max: 5000000, fee: 9890 }
 ];
 
 
@@ -67,6 +83,8 @@ function generateChecksum({ orderReference, amount, phoneNumber }) {
   return crypto.createHash('sha256').update(dataString).digest('hex');
 }
 
+
+
 //validate phone number operator
 function validatePhoneNumber(phoneNumber) {
   // Ensure it's digits only
@@ -82,13 +100,15 @@ function validatePhoneNumber(phoneNumber) {
   // Extract network prefix (next two digits after 255)
   const prefix = phoneNumber.substring(3, 5);
 
-  const halotelPrefixes = ["62", "67","61"];
-  const tigoPrefixes = ["65", "71"];
-  const airtelPrefixes = ["68", "78"];
+  const halotelPrefixes = ["62", "63","61"];
+  const yasPrefixes = ["65","67","71","77"];
+  const airtelPrefixes = ["68", "78","69"];
+  const ttcprefixes = ["73","74"];
+  const vodacomprefixes = ["74","75","76"];
 
   if (halotelPrefixes.includes(prefix)) {
     return { valid: true, operator: "Halotel" };
-  } else if (tigoPrefixes.includes(prefix)) {
+  } else if (yasPrefixes.includes(prefix)) {
     return { valid: true, operator: "Tigo" };
   } else if (airtelPrefixes.includes(prefix)) {
     return { valid: true, operator: "Airtel" };
@@ -105,6 +125,18 @@ function validatePhoneNumber(phoneNumber) {
 exports.pay = async (req, res) => {
   try {
     const { productid, amount, phoneNumber } = req.body;
+    if(amount<500){
+      return res.status(400).json({success:false,message:"Minimum payment amount is TZS 500"});
+    }
+
+    const product = await Product.findOne({ where: { product_id: productid } });
+    if(!product){
+      return  res.status(404).json({success:false,message:"Product Not Found"});
+    }
+    if(product.orderTpe==='designFeed'){
+      return res.status(400).json({success:false,message:"Payments are not required for Design Feed Orders"});
+    }
+    
     const user_id = req.user.id;
     //console.log("Body",req.body);
     const { valid, message} = validatePhoneNumber(phoneNumber);
@@ -112,7 +144,9 @@ exports.pay = async (req, res) => {
     if (!valid) {
       return res.status(400).json({success:false, message });
     }
-    const orderReference = Math.random().toString(36).substring(2, 10).toUpperCase();
+    const stringrandom = Math.random().toString(36).substring(2, 10).toUpperCase();
+    const orderReference = `DL${stringrandom}`;
+    //console.log("Generated Order Reference:", orderReference);
 
     const checksum = generateChecksum({ orderReference, amount, phoneNumber });
 
@@ -150,6 +184,7 @@ delete paymentDataB.fetchSenderDetails;
     // console.log("Passed Payment Creation");
     res.status(200).json({ success: true, orderReference, data: result,message:"Your Payment is Processed You will be redirected Shortly" });
   } catch (err) {
+    console.error("Payment initiation error:", err);
     res.status(500).json({ success: false, message:'Something Went Wrong,Try Again Later' });
   }
 };
@@ -172,136 +207,11 @@ exports.checkStatus = async (req, res) => {
   }
 };
 
-// exports.handleWebhook = async (req, res) => {
-//   try {
-//     console.log("Inside handleWebhook");
-//     const { event, eventType, data } = req.body;
-//     const eventName = event || eventType;
-//     console.log("Body",req.body);
-
-//     if (!data || !data.orderReference) {
-//       return res.status(400).json({ success: false, message: "Invalid webhook payload" });
-//     }
-
-//     // ✅ Payment success
-//     if (eventName === "PAYMENT RECEIVED") {
-//       const {
-//         paymentId,
-//         orderReference,
-//         collectedAmount,
-//         collectedCurrency,
-//         status,
-//         clientId,
-//       } = data;
-
-//       // Pull payment with product + user (designer) relation
-//       const payment = await Payment.findOne({
-//         where: { orderReference },
-//         include: {
-//           model: Product,
-//           include: [User]
-//         }
-//       });
-
-//       if (!payment) {
-//         console.warn(`Payment not found for orderReference: ${orderReference}`);
-//         return res.status(200).json({ success: true });
-//       }
-
-//     await Payment.update(
-//         {
-//           status,
-//           transactionId: paymentId,
-         
-//           customerName: customer.name,
-        
-//           clientId,
-//           updatedAt
-//         },
-//         { where: { orderReference } }
-//       );
-
-//       // Designer phone
-//       const designerPhone = payment.Product?.User?.phonenumber;
-//       if (!designerPhone) {
-//         console.error(`No phone found for designer of product ${payment.product_id}`);
-//         return res.status(200).json({ success: true });
-//       }
-
-
-//        const checksum=generateChecksum(orderReference,collectedAmount,designerPhone);
-//       // Trigger payout
-//       const payoutData = {
-//         amount: collectedAmount,
-//         phoneNumber: designerPhone,
-//         currency: collectedCurrency,
-//         orderReference: `PO_${orderReference}`,
-//         checksum: checksum // TODO: generate proper checksum
-//       };
-
-//       try {
-//         const payoutStatus = await payoutClient.processPayout(payoutData);
-
-//         // await Payout.create({
-//         //   orderReference: payoutData.orderReference,
-//         //   paymentReference: orderReference,
-//         //   amount: payoutData.amount,
-//         //   phone: payoutData.phoneNumber,
-//         //   status: payoutStatus.status || 'PENDING'
-//         // });
-
-//         await Payout.create({
-//   orderReference: payoutData.orderReference,
-//   paymentReference: orderReference,
-//   amount: payoutData.amount,
-//   currency: payoutData.currency,
-//   phone: payoutData.phoneNumber,
-//   status: payoutStatus.status || 'PENDING',
-//   transactionId: payoutStatus.transactionId || null,
-//   failureReason: payoutStatus.message || null
-// });
-
-
-//         console.log(`💸 Payout initiated for designer ${designerPhone}`);
-//       } catch (err) {
-//         console.error("❌ Failed to process payout:", err.message);
-//       }
-//     }
-
-//     // ❌ Payment failed
-//     else if (eventName === "PAYMENT FAILED") {
-//       const { orderReference, status, message } = data;
-//     //   await Payment.update(
-//     //     { status, failureReason: message },
-//     //     { where: { orderReference } }
-//     //   );
-
-//     await Payment.update(
-//         {
-//           status,
-//           transactionId: id,
-//           //failureReason: message,
-//           clientId,
-//           updatedAt
-//         },
-//         { where: { orderReference } }
-//       );
-//     }
-
-//     res.status(200).json({ success: true });
-//   } catch (err) {
-//     console.error("Webhook error:", err);
-//     res.status(500).json({ success: false });
-//   }
-// };
-
-
-
 
 exports.handleWebhook = async (req, res) => {
   try {
-    //console.log("Inside handleWebhook");
-    //console.log("Body", req.body);
+    
+   //console.log("Received Webhook for the second time:", req.body);
 
     const { event, eventType, data } = req.body;
     const eventName = event || eventType;
@@ -310,7 +220,7 @@ exports.handleWebhook = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid webhook payload" });
     }
 
-    // ✅ Payment success
+    // Payment success
     if (eventName === "PAYMENT RECEIVED") {
       const {
         paymentId,
@@ -351,6 +261,97 @@ exports.handleWebhook = async (req, res) => {
         { where: { product_id: payment.product_id } }
       );
 
+      //find all the images related to that product 
+      const productImages = await Images.findAll({ where: { productId: payment.product_id } });
+      //append the server URL to each image path
+      const products = productImages.map(img => ({
+  id: img.id,
+  fileType: img.fileType,
+  price: payment.amount,
+  image: {
+    uri: `${process.env.SERVER_URL}/${img.path}`
+  }
+}));
+
+const notificationData = {
+  orderReference:productImages[0]?.id,
+  products
+};
+
+//store the notification in notification table
+await Notification.create({
+  userId: payment.user_id, // the one paying
+  title: "Payment Received",
+  message: `Your payment for product ${payment.product_id} has been received successfully.`,
+  type: "PAYMENT_RECEIVED",
+  data: notificationData
+});
+
+
+//PUSH THE NOTIFICATION 
+// 🔹 PUSH NOTIFICATION TO THE CLIENT 
+  const client = await User.findByPk(payment.user_id);
+  const expoToken = client?.expoPushToken;
+
+  if (expoToken) {
+    const pushMessage = {
+      to: expoToken,
+      sound: "default",
+      title: "Payment Received",
+      body: `Your payment for product ${payment.product_id} has been received successfully.`,
+      data: {
+        params:notificationData,
+        screen: "Product",
+      },
+    };
+
+    try {
+      await axios.post("https://exp.host/--/api/v2/push/send", pushMessage, {
+        headers: {
+          Accept: "application/json",
+          "Accept-encoding": "gzip, deflate",
+          "Content-Type": "application/json",
+        },
+      });
+    } catch (err) {
+      console.error(
+        "Push Notification Error (expired request):",
+        err.response?.data || err.message
+      );
+    }
+  }
+ 
+
+//push notification to designer about the  payment for his product
+const designerexpopushtoken = payment.Product?.User?.expoPushToken;
+  if (designerexpopushtoken) {
+    const pushMessage = {
+      to: designerexpopushtoken,
+      sound: "default",
+      title: "Payment Made For Your Product",
+      body: `Your Client Has Made Payment  for product ${payment.Product?.designtitle} `,
+      data: {
+        
+        screen: "Dashboard",
+      },
+    };
+
+    try {
+      await axios.post("https://exp.host/--/api/v2/push/send", pushMessage, {
+        headers: {
+          Accept: "application/json",
+          "Accept-encoding": "gzip, deflate",
+          "Content-Type": "application/json",
+        },
+      });
+    } catch (err) {
+      console.error(
+        "Push Notification Error (expired request):",
+        err.response?.data || err.message
+      );
+    }
+  }
+
 
       // Designer phone
       let designerPhone = payment.Product?.User?.phonenumber;
@@ -358,6 +359,11 @@ exports.handleWebhook = async (req, res) => {
         console.error(`No phone found for designer of product ${payment.product_id}`);
         return res.status(200).json({ success: true });
       }
+
+      //get designers ID to know that the payout is for which designer
+      const designerId = payment.Product?.User?.user_id;
+      //get the ID of the product to be used in the payout notes
+      const productId = payment.Product?.product_id;
 
 
       // Normalize phone number to format: 255XXXXXXXXX
@@ -385,34 +391,58 @@ if (!designerPhone) {
       });
 
       // Trigger payout
-      const payoutData = {
-        amount: payoutAmount,
-        phoneNumber: designerPhone,
-        currency: collectedCurrency,
-        orderReference: `PO${orderReference}`,
-        exchange: { fromCurrency: 'USD', toCurrency: 'USD', rate: 1, amount: collectedAmount },
-        checksum,
-      };
+      // const payoutData = {
+      //   amount: payoutAmount,
+      //   phoneNumber: designerPhone,
+      //   currency: collectedCurrency,
+      //   orderReference: `PO${orderReference}`,
+      //   exchange: { fromCurrency: 'USD', toCurrency: 'USD', rate: 1, amount: collectedAmount },
+      //   checksum,
+      // };
+
+
+ 
 
       try {
         //const payoutStatus = await client.processPayout(payoutData);
-        const payoutStatus = await client.processMobilePayout(payoutData)
+       // const payoutStatus = await client.processMobilePayout(payoutData)
 
 
-        await Payout.create({
-          orderReference: payoutData.orderReference,
+  const payoutRecord = await Payout.create({
+          orderReference: orderReference,
           paymentReference: orderReference,
-          amount: payoutData.amount,
-          currency: payoutData.currency,
-          phone: payoutData.phoneNumber,
-          status: payoutStatus.status || "PENDING",
-          transactionId: payoutStatus.transactionId || null,
-          failureReason: payoutStatus.message || null,
+          amount: payoutAmount,
+          currency: collectedCurrency,
+          phone: designerPhone,
+          status:"QUEUED",
+          transactionId:  null,
+          failureReason:  null,
+          designerid: designerId,
+          product_id: productId,
         });
+
+
+        console.log(`✅ Payout record created: ${payoutRecord.orderReference} for designer ${designerPhone}`);
+       
+                // SCHEDULE JOB
+await payoutQueue.add("payout_job", {
+  payoutData: {
+    PayoutId: payoutRecord.id,
+    OrderReference: payoutRecord.orderReference,
+    Amount: payoutAmount,
+    Currency: collectedCurrency,
+    Phone: designerPhone,
+    Checksum: checksum
+  }
+});
+   
+console.log(`🚀 Payout job scheduled for designer ${designerPhone}`);
 
         //console.log(`💸 Payout initiated for designer ${designerPhone}`);
       } catch (err) {
-        console.error("❌ Failed to process payout:", err.message);
+        
+        console.error("❌ Failed to process payout:", err);
+
       }
     }
 
