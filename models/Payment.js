@@ -4,9 +4,24 @@ const sequelize = require('../config/db');
 
 
 const Payment = sequelize.define('Payment', {
-  payment_id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-  user_id: { type: DataTypes.INTEGER, allowNull: false },
-  product_id: { type: DataTypes.STRING, allowNull: false },
+  payment_id: { type: DataTypes.UUID, defaultValue:DataTypes.UUIDV4, primaryKey: true },
+  user_id: { type: DataTypes.INTEGER, 
+    allowNull: false,
+  references:{
+    model:'users',
+    key:'user_id'
+  } ,
+onUpdate:'CASCADE',
+onDelete:'CASCADE'},
+  product_id: { type: DataTypes.STRING, 
+    allowNull: false ,
+    references:{
+      model:'products',
+      key:'product_id'
+    },
+    onDelete:'CASCADE',
+    onUpdate:'CASCADE'
+  },
 
   orderReference: { type: DataTypes.STRING, allowNull: false },
   phone: { type: DataTypes.STRING, allowNull: false },

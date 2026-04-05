@@ -1,5 +1,7 @@
+const { or } = require('sequelize');
 const {Product,User,Images}  = require('../models');
 const slugify = require('slugify'); // install this package with `npm install slugify`
+const axios = require("axios");
 
 
 // Helper to generate a unique productId
@@ -49,13 +51,26 @@ exports.createOrder = async (req, res) => {
     clientname,
     clientphonenumber,
     price,
+    isPublic,
+    caption,
+    orderType
   } = req.body;
   //console.log("Body",req.body);
   //let price2=price;
 
   try {
-    if (!clientname||!designtitle||!clientphonenumber||!price) {
+
+      //verify order type
+  if(orderType!=='designFeed' && orderType!=='business'){
+    return res.status(400).json({success:false,message:"Invalid Order Type"});
+  }
+
+    if(orderType!=='designFeed'){
+   
+
+  if (!clientname||!designtitle||!clientphonenumber||!price) {
       return res.status(400).json({success:false, message: 'Missing Required Fields' });
+      //console.log('Missing fields');
     }
     
     if (!isValidPrice(price)) {
@@ -63,22 +78,48 @@ exports.createOrder = async (req, res) => {
     return res.status(400).json({ success:false,message: 'Invalid price format' });
   }
   
+    }
+
+    if(orderType==='designFeed'){
+      if(!designtitle){
+        return res.status(400).json({success:false,message:"Design Title is Required for Design Feed Orders"});
+      }
+    }
+
+       //For Design Feed Orders, client details are fetched from user profile
+       const user = await User.findByPk(req.user.id);
+  if (!user) {
+    return res.status(404).json({ success:false,message: 'User not found' });
+  }
+    
+
+    
+    
+
+
+
+ 
+  
 
  // console.log("Reached Here")
 
 const numericPrice = Number(price);
 
-    const product_id = await generateUniqueProductId(clientname, designtitle);
+    const product_id = await generateUniqueProductId(clientname ? clientname:user.firstname, designtitle);
 
     // 1️⃣ Create product
     const newProduct = await Product.create({
       productname: designtitle,
-      clientname,
-      clientphonenumber,
-      price,
+      clientname:orderType==='designFeed' ? user.firstname : clientname,
+      clientphonenumber: orderType==='designFeed' ? user.phonenumber : clientphonenumber,
+      price:orderType==='designFeed' ? 0 : price,
       user_id: req.user.id,
       product_id,
       designtitle,
+      isPublic,
+      Caption: isPublic ? caption : null,
+      orderType,
+      status: orderType==='designFeed' ? 'Completed' : 'In Progress',
     });
 
     // 2️⃣ Save uploaded files (images/videos)
@@ -97,6 +138,42 @@ const numericPrice = Number(price);
 
     // 3️⃣ Increment user's post count
     await User.increment('posts', { where: { user_id: req.user.id } });
+
+    const designer = await User.findByPk(req.user.id);
+    const formattedphonenumber="+"+clientphonenumber;
+
+    //possibly find the client in the databse using the client bphone number provided,if exists send a push notification to him
+const client=await User.findOne({where:{phonenumber:formattedphonenumber}});
+if(client){
+  const expoToken=client.expoPushToken;
+   if (expoToken) {
+      const pushMessage = {
+        to: expoToken,
+        sound: "default",
+        title: "New Order For You",
+        body: `${designer.firstname} ${designer.lastname} has created a new order for you with ID  ${newProduct.product_id} having title ${designtitle}`,
+        data: {
+         
+          screen: "Dashboard",
+        },
+      };
+  
+      try {
+        await axios.post("https://exp.host/--/api/v2/push/send", pushMessage, {
+          headers: {
+            Accept: "application/json",
+            "Accept-encoding": "gzip, deflate",
+            "Content-Type": "application/json",
+          },
+        });
+      } catch (err) {
+        console.error(
+          "Push Notification Error (expired request):",
+          err.response?.data || err.message
+        );
+      }
+    }
+}
 
     return res.status(201).json({success:true,
       message: `Product created successfully with ID: ${product_id}`,
@@ -158,10 +235,10 @@ exports.deleteOrder = async (req, res) => {
 
 //edit order function beggins
 exports.EditOrder = async (req, res) => {
- // console.log("Received A request");
+  //console.log("Received A request body",req.body);
   try {
     const { orderid } = req.params;
-    const { clientname, clientphonenumber, designtitle, price } = req.body;
+    const { clientname, clientphonenumber, designtitle, price,isPublic } = req.body;
     const product_id = orderid;
 
     //Validate The User Inputs 
@@ -171,7 +248,7 @@ exports.EditOrder = async (req, res) => {
     //validate Price
     
     if (!isValidPrice(price)) {
-      console.log("Price is Invalid")
+      //console.log("Price is Invalid")
     return res.status(400).json({ success:false,message: 'Invalid price format' });
   }
 
@@ -188,6 +265,7 @@ exports.EditOrder = async (req, res) => {
         designtitle,
         productname: designtitle,
         price,
+        isPublic
       },
       { where: { product_id: product_id } }
     );

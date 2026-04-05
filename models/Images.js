@@ -3,14 +3,21 @@ const sequelize = require('../config/db'); // adjust path to your Sequelize inst
 
 const Image = sequelize.define('Image', {
   id: {
-    type: DataTypes.INTEGER,
-    autoIncrement: true,
+    type: DataTypes.UUID,
+    defaultValue:DataTypes.UUIDV4,
     primaryKey: true,
   },
-  // Foreign key linking to parent table (e.g., post, product)
+  // Foreign key linking to parent table 
   productId: {
     type: DataTypes.STRING,
     allowNull: false,
+    references:{
+      model:'products',
+      key:'product_id'
+
+    },
+    onUpdate:'CASCADE',
+      onDelete:'CASCADE'
    
   },
   path: {
