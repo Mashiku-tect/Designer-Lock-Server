@@ -1,9 +1,15 @@
 const express = require('express');
+const helmet = require('helmet');
 const app = express();
 require('dotenv').config();
 const sequelize = require('./config/db');
 
+const { apiLimiter } = require('./middleware/RateLimiter');
 
+
+
+//use helmet for security
+app.use(helmet());
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -32,10 +38,12 @@ const WebHookHandlingRoutes = require('./routes/WebHookHandlingRoutes');
 
 
 
+//enable rate limiting behind proxies like nginx
+app.set('trust proxy', 1);
 
 
-
-
+//rate limiting
+app.use('/api', apiLimiter);
 
 
 
