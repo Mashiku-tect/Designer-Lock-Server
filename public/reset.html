@@ -453,7 +453,7 @@ form.addEventListener('submit', async (e) => {
   setSubmitState(true, 'Resetting Password...');
 
   try {
-    const res = await fetch("/api/reset-password", {
+    const res = await fetch("https://57cb-196-249-97-31.ngrok-free.app/api/reset-password", {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",

@@ -17,6 +17,7 @@ router.get("/reset/:token", (req, res) => {
 
 // Handle password reset form submission
 router.post("/reset-password", async (req, res) => {
+  console.log('request is received in reset password controller')
   const { token, password } = req.body;
 
   try {
