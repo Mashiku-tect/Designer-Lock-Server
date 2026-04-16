@@ -11,6 +11,9 @@ exports.getDashboardData = async (req, res) => {
 
 
     const user = await User.findByPk(user_id);
+    if(!user){
+      return res.status(404).json({message:"User Not Found"})
+    }
 
     // Get active orders (e.g., not completed)
     const activeOrders = await Product.count({
@@ -87,7 +90,7 @@ exports.getDashboardData = async (req, res) => {
       await User.update({ haseverloggedin: 1 }, { where: { user_id: user.user_id } });
     }
   } catch (err) {
-    console.error('Dashboard error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+   // console.error('Dashboard error:', err);
+    res.status(500).json({ message: 'Something went wrong,please try again later' });
   }
 };

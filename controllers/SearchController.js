@@ -32,7 +32,7 @@ exports.searchProducts = async (req, res) => {
 
     res.json(results);
   } catch (err) {
-    console.error('Search error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+   // console.error('Search error:', err);
+    res.status(500).json({ message: 'Something went wrong,Please try again' });
   }
 };

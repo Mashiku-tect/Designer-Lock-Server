@@ -107,7 +107,7 @@ const numericPrice = Number(price);
 
     const product_id = await generateUniqueProductId(clientname ? clientname:user.firstname, designtitle);
 
-    // 1️⃣ Create product
+    //  Create product
     const newProduct = await Product.create({
       productname: designtitle,
       clientname:orderType==='designFeed' ? user.firstname : clientname,
@@ -122,21 +122,21 @@ const numericPrice = Number(price);
       status: orderType==='designFeed' ? 'Completed' : 'In Progress',
     });
 
-    // 2️⃣ Save uploaded files (images/videos)
+    //  Save uploaded files (images/videos)
     if (req.files && req.files.length > 0) {
       const fileEntries = req.files.map(file => {
         const fileType = file.mimetype.startsWith('video') ? 'video' : 'image';
         return {
           productId: product_id,
           path: file.path.replace(/\\/g, '/'),
-          fileType, // ✅ new field to distinguish media type
+          fileType, // new field to distinguish media type
         };
       });
 
       await Images.bulkCreate(fileEntries);
     }
 
-    // 3️⃣ Increment user's post count
+    //  Increment user's post count
     await User.increment('posts', { where: { user_id: req.user.id } });
 
     const designer = await User.findByPk(req.user.id);
@@ -167,10 +167,10 @@ if(client){
           },
         });
       } catch (err) {
-        console.error(
-          "Push Notification Error (expired request):",
-          err.response?.data || err.message
-        );
+        // console.error(
+        //   "Push Notification Error (expired request):",
+        //   err.response?.data || err.message
+        // );
       }
     }
 }
@@ -182,8 +182,8 @@ if(client){
 
   } catch (error) {
     
-    console.error('Create product error:', error);
-    return res.status(500).json({success:false, message: 'Server error' });
+    //console.error('Create product error:', error);
+    return res.status(500).json({success:false, message: 'Something went wrong,please try again' });
   }
 };
 
@@ -198,7 +198,7 @@ exports.deleteOrder = async (req, res) => {
   try {
     const order = await Product.findOne({ where: { product_id: productId, user_id } });
     if (!order) {
-      return res.status(404).json({ error: 'Order not found' });
+      return res.status(404).json({ message: 'Order not found' });
     }
    
      //if current order status is Completed,Perform a soft delete else a hard delete
@@ -226,8 +226,8 @@ exports.deleteOrder = async (req, res) => {
 
     res.json({ message: 'Order deleted successfully' });
   } catch (error) {
-    console.error('Delete order error:', error);
-    res.status(500).json({ error: 'Failed to delete order' });
+    //console.error('Delete order error:', error);
+    res.status(500).json({ message: 'Soemthing went wrong please try again' });
   }
 };
 //end of delete order function

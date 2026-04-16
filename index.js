@@ -34,6 +34,8 @@ const commentRoutes = require('./routes/CommentsRoutes');
 const LikesRoutes = require('./routes/LikesRoutes');
 const FollowerFollowingRoutes=require('./routes/FollowerFollowingroutes');
 const WebHookHandlingRoutes = require('./routes/WebHookHandlingRoutes');
+const DeleteAccountRoutes=require('./routes/DeleteAccountRoutes');
+const ResetPasswordRoutes=require('./routes/ResetPasswordRoutes');
 
 
 
@@ -67,6 +69,8 @@ app.use('/api', commentRoutes);
 app.use('/api', LikesRoutes);
 app.use('/api', FollowerFollowingRoutes);
 app.use('/api', WebHookHandlingRoutes);
+app.use('/api',DeleteAccountRoutes);
+app.use('/api',ResetPasswordRoutes);
 
 
 // Test DB connection

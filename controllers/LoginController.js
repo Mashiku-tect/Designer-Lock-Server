@@ -33,7 +33,7 @@ exports.login = async (req, res) => {
     // Check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Incorrect Username Or Password' });
+      return res.status(400).json({ message: 'Incorrect Username Or Password' });
     }
 
     //check if push token is not the same as stored one
@@ -84,7 +84,7 @@ exports.login = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error('Login error:', err);
-    return res.status(500).json({ success:false,message: 'Server error' });
+    //console.error('Login error:', err);
+    return res.status(500).json({ success:false,message: 'Something went wrong,Please try again later' });
   }
 };
