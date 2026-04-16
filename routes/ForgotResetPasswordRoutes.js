@@ -9,10 +9,10 @@ const ResetPasswordController = require("../controllers/ForgotPasswordController
 router.post("/forgot-password",ResetPasswordController.sendForgotPasswordCode);
 
 //resend OTP
-router.post("/verify-reset-code",ResetPasswordController.resendForgotPasswordCode);
+router.post("/resend-reset-code",ResetPasswordController.resendForgotPasswordCode);
 
 //verify token
-router.post("/resend-reset-code",ResetPasswordController.verifyForgotPasswordCode);
+router.post("/verify-reset-code",ResetPasswordController.verifyForgotPasswordCode);
 
 //change password
 router.post("/reset-password",ResetPasswordController.resetPassword)
