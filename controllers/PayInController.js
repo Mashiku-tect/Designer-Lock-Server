@@ -97,27 +97,7 @@ function validatePhoneNumber(phoneNumber) {
     return { valid: false, message: "Invalid phone number format" };
   }
 
-  // Extract network prefix (next two digits after 255)
-  const prefix = phoneNumber.substring(3, 5);
-
-  const halotelPrefixes = ["62", "63","61"];
-  const yasPrefixes = ["65","67","71","77"];
-  const airtelPrefixes = ["68", "78","69"];
-  const ttcprefixes = ["73","74"];
-  const vodacomprefixes = ["74","75","76"];
-
-  if (halotelPrefixes.includes(prefix)) {
-    return { valid: true, operator: "Halotel" };
-  } else if (yasPrefixes.includes(prefix)) {
-    return { valid: true, operator: "Tigo" };
-  } else if (airtelPrefixes.includes(prefix)) {
-    return { valid: true, operator: "Airtel" };
-  } else {
-    return {
-      valid: false,
-      message: "Unsupported network. Only Halotel, Yas, and Airtel are allowed.",
-    };
-  }
+  return { valid: true };
 }
 
 
